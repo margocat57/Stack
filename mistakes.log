@@ -1,33 +1,28 @@
 Try to set incorrect size of data
 size = -5
-[2025-09-24 16:47:10]: Mistake from file main.cpp function StackErr_t StackCtor(stack_t_t *, long long, FILE *) and string 170
-stack [0x7ff7bc901070] 
+[2025-09-25 01:07:41]: Mistake from file stack_func.cpp function StackErr_t StackCtor(stack_t_t *, long long, FILE *) and string 97
+name of stack with mistake stk1
+line where it was inicialized 19
+func where it was inicialized int main()
+file where it was inicialized main.cpp
+stack [0x7ff7b5ffe160] 
 Data was printed in reason verify failed before using func
 
 Accessing to NULL pointer
-[2025-09-24 16:47:10]: Mistake from file main.cpp function StackErr_t StackCtor(stack_t_t *, long long, FILE *) and string 164
+[2025-09-25 01:07:41]: Mistake from file stack_func.cpp function StackErr_t StackCtor(stack_t_t *, long long, FILE *) and string 91
 stack [0x0] BAD!!!
 Data was printed in reason verify failed before using func
 
 NULL POINTER to elem where value is written
-[2025-09-24 16:47:10]: Mistake from file main.cpp function stack_elem_t StackPop(stack_t_t *, stack_elem_t *, FILE *) and string 232
-stack [0x7ff7bc901070] 
+[2025-09-25 01:07:41]: Mistake from file stack_func.cpp function StackErr_t StackPop(stack_t_t *, stack_elem_t *, FILE *) and string 151
+name of stack with mistake stk1
+line where it was inicialized 19
+func where it was inicialized int main()
+file where it was inicialized main.cpp
+stack [0x7ff7b5ffe160] 
 capacity = 5 
 ptr = 4 
-data [0x7fa5cb804b20] 
-^[1] = 1
-^[2] = 2
-^[3] = 3
-^[4] = 4
-[5] = -6666 (POISON)
-Data was printed in reason verify failed before using func
-
-Varirable overflow
-[2025-09-24 16:47:10]: Mistake from file main.cpp function StackErr_t StackPush(stack_t_t *, long long, FILE *) and string 204
-stack [0x7ff7bc901070] 
-capacity = 5 
-ptr = 4 
-data [0x7fa5cb804b20] 
+data [0x7fa068b04150] 
 ^[1] = 1
 ^[2] = 2
 ^[3] = 3
