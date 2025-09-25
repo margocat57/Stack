@@ -33,7 +33,7 @@ void PrintMistakeTime(FILE *log_file_ptr)
     char time_str[20] = {};
     strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", localtime(&now));
 
-    fprintf(log_file_ptr, "[%s]: ", time_str);
+    fprintf(log_file_ptr, "[%s]:\n", time_str);
 }
 
 void CloseLogFile(FILE *log_file_ptr)

@@ -38,6 +38,11 @@ int main()
     StackPush(&stk1, 2, NULL);
     StackPush(&stk1, 3, log_file1);
     StackPush(&stk1, 4, log_file1);
+    StackDump(&stk1, VAR_NULL_PTR, stdout);
+    StackPush(&stk1, 5, log_file1);
+    StackDump(&stk1, VAR_NULL_PTR, stdout);
+    StackPush(&stk1, 6, log_file1);
+    StackDump(&stk1, VAR_NULL_PTR, stdout);
     /*
     printf("\n3test_start\n");
     StackErr_t err3 = StackPush(&stk1, 5);

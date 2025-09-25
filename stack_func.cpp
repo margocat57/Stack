@@ -5,13 +5,14 @@
 #include "mistake_information.h"
 
 const stack_elem_t POISON = -6666;
-const size_t SAVE = 10;
+const stack_elem_t CANAREIKA = 3381;
+const size_t MEMORY_FOR_CANARY = 2;
 bool DEBUG_STACK = false;
-
-const char *form_spec_stk_el = "%d";
+const char *FORM_SPEC_STK_EL = "%d";
 
 StackErr_t StackErr(stack_t_t *stk, FILE *log_file_ptr)
 {
+    // TODO усложненная логика лог файла
     log_file_ptr = GetLogStream(log_file_ptr);
 
     if (stk == NULL)
@@ -19,7 +20,12 @@ StackErr_t StackErr(stack_t_t *stk, FILE *log_file_ptr)
         fprintf(log_file_ptr, "Accessing to NULL pointer\n");
         return STK_NULL_PTR;
     }
-    else if (stk->ptr > stk->capacity)
+    else if (stk->data == NULL && stk->is_data_init)
+    {
+        fprintf(log_file_ptr, "DATA NULL PTR\n");
+        return DATA_NULL_PTR;
+    }
+    else if (stk->data != NULL && stk->data[stk->ptr] == CANAREIKA)
     {
         fprintf(log_file_ptr, "Trying to get access to the elem out of array\n");
         return OUT_OF_INDEX;
@@ -67,20 +73,65 @@ void StackDump(stack_t_t *stk, StackErr_t err, FILE *log_file_ptr)
         return;
     }
 
-    for (size_t idx = 1; idx <= stk->capacity; idx++)
+    for (size_t idx = 0; idx <= stk->capacity + 1; idx++)
     {
-        if (stk->data[idx] != POISON)
+        if (stk->data[idx] == POISON)
         {
-            fprintf(log_file_ptr, "\n^[%lu] = ", idx);
-            fprintf(log_file_ptr, form_spec_stk_el, stk->data[idx]);
+            fprintf(log_file_ptr, "\n[%lu] = ", idx);
+            fprintf(log_file_ptr, FORM_SPEC_STK_EL, stk->data[idx]);
+            fprintf(log_file_ptr, " (POISON)");
+        }
+        else if (stk->data[idx] == CANAREIKA)
+        {
+            fprintf(log_file_ptr, "\n[%lu] = ", idx);
+            fprintf(log_file_ptr, FORM_SPEC_STK_EL, stk->data[idx]);
+            fprintf(log_file_ptr, " (CANAREIKA)");
         }
         else
         {
-            fprintf(log_file_ptr, "\n[%lu] = ", idx);
-            fprintf(log_file_ptr, form_spec_stk_el, stk->data[idx]);
-            fprintf(log_file_ptr, " (POISON)");
+            fprintf(log_file_ptr, "\n^[%lu] = ", idx);
+            fprintf(log_file_ptr, FORM_SPEC_STK_EL, stk->data[idx]);
         }
     }
+}
+
+StackErr_t FillPoison(stack_t_t *stk, long long int idx, FILE *log_file_ptr)
+{
+    log_file_ptr = GetLogStream(log_file_ptr);
+
+    StackErr_t mistake = StackErr(stk, log_file_ptr);
+    MISTAKE_INFO(stk, mistake, before, log_file_ptr);
+
+    if (idx <= 0 || idx > LLONG_MAX)
+    {
+        fprintf(log_file_ptr, "Try to set incorrect size of data\n");
+        fprintf(log_file_ptr, "size = %lld\n", idx);
+        MISTAKE_INFO(stk, INCORR_IDX, before, log_file_ptr);
+    }
+
+    size_t index = (size_t)idx;
+
+    if (stk->data[index] == CANAREIKA)
+    {
+        fprintf(log_file_ptr, "Trying to get access to the elem out of array\n");
+        MISTAKE_INFO(stk, OUT_OF_INDEX, before, log_file_ptr);
+    }
+
+    for (; index <= stk->capacity; index++)
+    {
+        stk->data[index] = POISON;
+    }
+
+    if (stk->data[index] == CANAREIKA)
+    {
+        fprintf(log_file_ptr, "Trying to get access to the elem out of array\n");
+        MISTAKE_INFO(stk, OUT_OF_INDEX, after, log_file_ptr);
+    }
+
+    mistake = StackErr(stk, log_file_ptr);
+    MISTAKE_INFO(stk, mistake, before, log_file_ptr);
+
+    return NO_MISTAKE;
 }
 
 StackErr_t StackCtor(stack_t_t *stk, long long int size, FILE *log_file_ptr)
@@ -90,7 +141,7 @@ StackErr_t StackCtor(stack_t_t *stk, long long int size, FILE *log_file_ptr)
     StackErr_t mistake = StackErr(stk, log_file_ptr);
     MISTAKE_INFO(stk, mistake, before, log_file_ptr);
 
-    if ((size <= 0 || size > LLONG_MAX) && DEBUG_STACK)
+    if (size <= 0 || size > LLONG_MAX)
     {
         fprintf(log_file_ptr, "Try to set incorrect size of data\n");
         fprintf(log_file_ptr, "size = %lld\n", size);
@@ -98,22 +149,53 @@ StackErr_t StackCtor(stack_t_t *stk, long long int size, FILE *log_file_ptr)
     }
 
     stk->capacity = (size_t)size;
-    stk->data = (stack_elem_t *)calloc(stk->capacity + SAVE, sizeof(stack_elem_t *));
+    stk->data = (stack_elem_t *)calloc(stk->capacity + MEMORY_FOR_CANARY, sizeof(stack_elem_t *));
 
     mistake = StackErr(stk, log_file_ptr);
     MISTAKE_INFO(stk, mistake, after, log_file_ptr);
 
-    if (stk->data == NULL && DEBUG_STACK)
+    if (stk->data == NULL)
     {
         fprintf(log_file_ptr, "Allocation error\n");
         MISTAKE_INFO(stk, DATA_NULL_PTR, after, log_file_ptr);
     }
 
-    for (size_t i = 0; i <= stk->capacity; i++)
+    stk->is_data_init = true;
+    stk->data[0] = CANAREIKA;
+
+    // TODO канарейка с пойзоном в дебаге
+    FillPoison(stk, 1, log_file_ptr);
+
+    stk->data[stk->capacity + 1] = CANAREIKA;
+
+    stk->ptr = 1;
+
+    return NO_MISTAKE;
+}
+
+StackErr_t MakeDataSizeBigger(stack_t_t *stk, FILE *log_file_ptr)
+{
+    log_file_ptr = GetLogStream(log_file_ptr);
+
+    StackErr_t mistake = StackErr(stk, log_file_ptr);
+    MISTAKE_INFO(stk, mistake, before, log_file_ptr);
+
+    stack_elem_t *data_old = stk->data;
+    size_t capacity_old = stk->capacity;
+    stk->capacity = stk->capacity * 2;
+
+    stk->data = (stack_elem_t *)realloc(stk->data, (stk->capacity + MEMORY_FOR_CANARY) * sizeof(stack_elem_t));
+    if (stk->data == NULL)
     {
-        stk->data[i] = POISON;
+        stk->capacity = capacity_old;
+        fprintf(log_file_ptr, "ALLOCATION MISTAKE at reallocation");
+        return ALLOC_MISTAKE;
     }
 
+    stk->data[capacity_old + 1] = POISON;
+    FillPoison(stk, capacity_old + 2, log_file_ptr);
+
+    stk->data[stk->capacity + 1] = CANAREIKA;
     return NO_MISTAKE;
 }
 
@@ -124,13 +206,14 @@ StackErr_t StackPush(stack_t_t *stk, long long int value, FILE *log_file_ptr)
     StackErr_t mistake = StackErr(stk, log_file_ptr);
     MISTAKE_INFO(stk, mistake, before, log_file_ptr);
 
-    if (stk->ptr == 0)
-        stk->ptr = 1;
-
     stk->data[stk->ptr] = (stack_elem_t)value;
 
-    if (stk->ptr != stk->capacity - 1)
-        stk->ptr++;
+    if (stk->ptr >= stk->capacity)
+    {
+        MakeDataSizeBigger(stk, log_file_ptr);
+    }
+
+    stk->ptr++;
 
     mistake = StackErr(stk, log_file_ptr);
     MISTAKE_INFO(stk, mistake, after, log_file_ptr);
@@ -145,7 +228,7 @@ StackErr_t StackPop(stack_t_t *stk, stack_elem_t *elem, FILE *log_file_ptr)
     StackErr_t mistake = StackErr(stk, log_file_ptr);
     MISTAKE_INFO(stk, mistake, before, log_file_ptr);
 
-    if (elem == NULL && DEBUG_STACK)
+    if (elem == NULL)
     {
         fprintf(log_file_ptr, "NULL POINTER to elem where value is written\n");
         MISTAKE_INFO(stk, VAR_NULL_PTR, before, log_file_ptr);
@@ -163,11 +246,16 @@ StackErr_t StackPop(stack_t_t *stk, stack_elem_t *elem, FILE *log_file_ptr)
     return NO_MISTAKE;
 }
 
+// TODO возврат кода ошибки вместо элемента плохо
 stack_elem_t StackTop(stack_t_t *stk, FILE *log_file_ptr)
 {
     log_file_ptr = GetLogStream(log_file_ptr);
 
     StackErr_t mistake = StackErr(stk, log_file_ptr);
+    if (mistake)
+    {
+        fprintf(stderr, "Fuction StackTop returned code of mistake");
+    }
     MISTAKE_INFO(stk, mistake, before, log_file_ptr);
 
     return stk->data[stk->ptr];

@@ -22,6 +22,7 @@ struct stack_t_t
     stack_elem_t *data;
     size_t ptr;
     size_t capacity;
+    bool is_data_init;
 };
 
 enum StackErr_t
@@ -31,7 +32,9 @@ enum StackErr_t
     DATA_NULL_PTR = 2,
     OUT_OF_INDEX = 3,
     INCORR_SIZE = 4,
-    VAR_NULL_PTR = 5
+    VAR_NULL_PTR = 5,
+    ALLOC_MISTAKE = 6,
+    INCORR_IDX = 7
 };
 
 struct flags_for_tests

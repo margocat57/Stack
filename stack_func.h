@@ -10,7 +10,11 @@ void StackDump(stack_t_t *stk, StackErr_t err, FILE *log_file_ptr);
 
 StackErr_t StackCtor(stack_t_t *stk, long long int size, FILE *log_file_ptr);
 
+StackErr_t FillPoison(stack_t_t *stk, long long int idx, FILE *log_file_ptr);
+
 StackErr_t StackPush(stack_t_t *stk, long long int value, FILE *log_file_ptr);
+
+StackErr_t MakeDataSizeBigger(stack_t_t *stk, FILE *log_file_ptr);
 
 StackErr_t StackPop(stack_t_t *stk, stack_elem_t *elem, FILE *log_file_ptr);
 
