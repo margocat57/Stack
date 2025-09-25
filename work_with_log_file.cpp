@@ -38,7 +38,7 @@ void PrintMistakeTime(FILE *log_file_ptr)
 
 void CloseLogFile(FILE *log_file_ptr)
 {
-    if (!log_file_ptr)
+    if (!log_file_ptr || log_file_ptr == stderr)
         return;
 
     fclose(log_file_ptr);

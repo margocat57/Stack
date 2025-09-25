@@ -10,7 +10,7 @@
         StackDump(stk_ptr, mistake, log_file_ptr);                                                                        \
         fprintf(log_file_ptr, "\nData was printed in reason verify failed " #str " using func\n");                        \
         fprintf(log_file_ptr, "\n");                                                                                      \
-        if (log_file_ptr != NULL)                                                                                         \
+        if (log_file_ptr != NULL && log_file_ptr != stderr)                                                               \
         {                                                                                                                 \
             fflush(log_file_ptr);                                                                                         \
         }                                                                                                                 \

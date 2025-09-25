@@ -22,7 +22,7 @@ struct stack_t_t
     stack_elem_t *data;
     size_t ptr;
     size_t capacity;
-    bool is_data_init;
+    bool is_memory_alloc;
 };
 
 enum StackErr_t
@@ -33,14 +33,8 @@ enum StackErr_t
     OUT_OF_INDEX = 3,
     INCORR_SIZE = 4,
     VAR_NULL_PTR = 5,
-    ALLOC_MISTAKE = 6,
+    REALLOC_MISTAKE = 6,
     INCORR_IDX = 7
-};
-
-struct flags_for_tests
-{
-    const char *flag_test;
-    bool is_flag_test;
 };
 
 #endif // STRUCTURES_H
