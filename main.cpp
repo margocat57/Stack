@@ -28,7 +28,6 @@ int main()
     printf("\n1test_start\n");
     StackErr_t err1 = StackCtor(&stk1, -5, log_file1);
     printf("\n1st TESTING SIZE\n");
-    printf("%d", DEBUG_STACK);
 
     printf("\n2test_start\n");
     StackErr_t err2 = StackCtor(NULL, 5, log_file1);

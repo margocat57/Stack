@@ -4,7 +4,6 @@
 
 typedef int stack_elem_t;
 
-// TODO не нравится
 extern bool DEBUG_STACK;
 
 struct stack_info
