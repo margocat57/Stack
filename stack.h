@@ -14,6 +14,7 @@ struct stack_t_t
     size_t capacity;
     size_t size_of_elem;
     size_t djb2_data;
+    //TODO rename
     size_t djb2;
     size_t tail_canary;
 };

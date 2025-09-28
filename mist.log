@@ -1,38 +1,76 @@
-Stack adress 0x7fd42e904080
+Stack adress 0x7fbb50004080
 Front canary: 42554A42
-Data adress: 0x7fd42e9040c0
-Elem pointer adress: 0x7fd42e9040d0
+Data adress: 0x7fbb500040c0
+Elem pointer adress: 0x7fbb500040d4
 Stack capacity: 6
 Stack size of elem: 4 bytes
-DJB2 hash for data array: 1091311686533047464
-DJB2 hash for whole stack: 592615181768981429
+DJB2 hash for data array: 4906722937748670795
+DJB2 hash for whole stack: 7636962625767276651
 Tail canary: 44454444
 Number of element in stack 0
-Adress of elem [0x7fd42e9040c8]
+Adress of elem [0x7fbb500040c8]
 01 00 00 00 
 Number of element in stack 1
-Adress of elem [0x7fd42e9040cc]
+Adress of elem [0x7fbb500040cc]
 02 00 00 00 
 Number of element in stack 2
-Adress of elem [0x7fd42e9040d0]
-00 00 00 00 
+Adress of elem [0x7fbb500040d0]
+03 00 00 00 
 Number of element in stack 3
-Adress of elem [0x7fd42e9040d4]
+Adress of elem [0x7fbb500040d4]
 00 00 00 00 
 Number of element in stack 4
-Adress of elem [0x7fd42e9040d8]
+Adress of elem [0x7fbb500040d8]
 00 00 00 00 
 Number of element in stack 5
-Adress of elem [0x7fd42e9040dc]
+Adress of elem [0x7fbb500040dc]
 00 00 00 00 
-stack_func.cpp: stack_t_t *stack_ctor(long long, long long) line 16, assertion failed at 0 < size_of_elem && size_of_elem<LLONG_MAX
+stack_func.cpp: stack_t_t *stack_ctor(long long, long long) line 19, assertion failed at 0 < size_of_elem && size_of_elem<LLONG_MAX
 NULL stack pointer
-handlers.cpp: size_t create_handle(stack_t_t *) line 12, assertion failed at stack_verify(stack) == NO_MISTAKE
-stack_func.cpp: stack_t_t *stack_ctor(long long, long long) line 15, assertion failed at 0 < num_of_elem && num_of_elem<LLONG_MAX
+handlers.cpp: size_t create_handle(stack_t_t *) line 16, assertion failed at stack_verify(stack) == NO_MISTAKE
+stack_func.cpp: stack_t_t *stack_ctor(long long, long long) line 18, assertion failed at 0 < num_of_elem && num_of_elem<LLONG_MAX
 NULL stack pointer
-handlers.cpp: size_t create_handle(stack_t_t *) line 12, assertion failed at stack_verify(stack) == NO_MISTAKE
-stack_func.cpp: void stack_push(stack_t_t *, const void *) line 130, assertion failed at elem != NULL
-stack_func.cpp: void stack_pop(stack_t_t *, void *) line 149, assertion failed at elem != NULL
-stack_func.cpp: void stack_pop(stack_t_t *, void *) line 149, assertion failed at elem != NULL
-handlers.cpp: void stack_free_handle(size_t) line 69, assertion failed at HANDLERS[handle] != NULL
-handlers.cpp: void stack_free_handle(size_t) line 69, assertion failed at HANDLERS[handle] != NULL
+handlers.cpp: size_t create_handle(stack_t_t *) line 16, assertion failed at stack_verify(stack) == NO_MISTAKE
+stack_func.cpp: func_errors stack_push(stack_t_t *, const void *) line 147, assertion failed at elem != NULL
+Stack hash is not correct
+Stack adress 0x7fbb50104080
+Front canary: 42554A42
+Data adress: 0x7fbb501040c0
+Elem pointer adress: 0x7fbb501040c8
+Stack capacity: 3
+Stack size of elem: 4 bytes
+DJB2 hash for data array: 12402099667612228838
+DJB2 hash for whole stack: 18343778305610766560
+Tail canary: 44454444
+Number of element in stack 0
+Adress of elem [0x7fbb501040c8]
+00 00 00 00 
+Number of element in stack 1
+Adress of elem [0x7fbb501040cc]
+00 00 00 00 
+Number of element in stack 2
+Adress of elem [0x7fbb501040d0]
+00 00 00 00 
+stack_func.cpp: func_errors stack_pop(stack_t_t *, void *) line 167, assertion failed at stack_verify(stack) == NO_MISTAKE
+Stack hash is not correct
+Stack adress 0x7fbb50104080
+Front canary: 42554A42
+Data adress: 0x7fbb501040c0
+Elem pointer adress: 0x7fbb501040c8
+Stack capacity: 3
+Stack size of elem: 4 bytes
+DJB2 hash for data array: 12402099667612228838
+DJB2 hash for whole stack: 18343778305610766560
+Tail canary: 44454444
+Number of element in stack 0
+Adress of elem [0x7fbb501040c8]
+00 00 00 00 
+Number of element in stack 1
+Adress of elem [0x7fbb501040cc]
+00 00 00 00 
+Number of element in stack 2
+Adress of elem [0x7fbb501040d0]
+00 00 00 00 
+stack_func.cpp: func_errors free_stack(stack_t_t *) line 230, assertion failed at stack_verify(stack) == NO_MISTAKE
+handlers.cpp: func_errors stack_free_handle(size_t) line 83, assertion failed at HANDLERS[handle] != NULL
+handlers.cpp: func_errors stack_free_handle(size_t) line 83, assertion failed at HANDLERS[handle] != NULL

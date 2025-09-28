@@ -6,6 +6,7 @@
 #include "stack_func.h"
 
 size_t calculate_struct_hash(stack_t_t* stack) {
+    //assert
     if(!stack) return 1;
 
     temp_struct temp{

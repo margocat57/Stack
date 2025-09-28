@@ -7,6 +7,10 @@
 static stack_t_t* HANDLERS[HANDLER_MAX_SIZE] = {NULL};
 static size_t FREE_HANDLE = 0;
 
+static size_t create_handle(stack_t_t* stack);
+
+static stack_t_t* delete_handle(size_t handle);
+
 static size_t create_handle(stack_t_t* stack){
 
     if(MY_ASSERT(stack_verify(stack) == NO_MISTAKE)) return 0;
@@ -40,35 +44,47 @@ size_t stack_ctor_handle(long long int num_of_elem, long long int size_of_elem){
     return create_handle(stack);
 }
 
-void stack_push_handle(size_t handle, const void* elem){
-    if(MY_ASSERT(handle < HANDLER_MAX_SIZE)) return;
-    if(MY_ASSERT(HANDLERS[handle] != NULL)) return;
+func_errors stack_push_handle(size_t handle, const void* elem){
+    func_errors error = NO_MISTAKE_FUNC;
+    if(MY_ASSERT(handle < HANDLER_MAX_SIZE)) error = error | HANDLE_OUT_OF_IDX;
+    if(MY_ASSERT(HANDLERS[handle] != NULL)) error = error | HANDLE_STACK_NOT_EXISTS;
+    if(error) return error;
 
     stack_t_t *stack = HANDLERS[handle];
-    stack_push(stack, elem);
+    func_errors push_err = stack_push(stack, elem);
+    return push_err;
 }
 
-void stack_pop_handle(size_t handle, void* elem){
-    if(MY_ASSERT(handle < HANDLER_MAX_SIZE)) return;
-    if(MY_ASSERT(HANDLERS[handle] != NULL)) return;
+func_errors stack_pop_handle(size_t handle, void* elem){
+    func_errors error = NO_MISTAKE_FUNC;
+    if(MY_ASSERT(handle < HANDLER_MAX_SIZE)) error = error | HANDLE_OUT_OF_IDX;
+    if(MY_ASSERT(HANDLERS[handle] != NULL)) error = error | HANDLE_STACK_NOT_EXISTS;
+    if(error) return error;
 
     stack_t_t *stack = HANDLERS[handle];
-    stack_pop(stack, elem);
+    func_errors pop_err = stack_pop(stack, elem);
+    return pop_err;
 }
 
-void stack_top_handle(size_t handle, void* elem){
-    if(MY_ASSERT(handle < HANDLER_MAX_SIZE)) return;
-    if(MY_ASSERT(HANDLERS[handle] != NULL)) return;
+func_errors stack_top_handle(size_t handle, void* elem){
+    func_errors error = NO_MISTAKE_FUNC;
+    if(MY_ASSERT(handle < HANDLER_MAX_SIZE)) error = error | HANDLE_OUT_OF_IDX;
+    if(MY_ASSERT(HANDLERS[handle] != NULL)) error = error | HANDLE_STACK_NOT_EXISTS;
+    if(error) return error;
 
     stack_t_t *stack = HANDLERS[handle];
-    stack_pop(stack, elem);
+    func_errors top_err = stack_top(stack, elem);
+    return top_err;
 }
 
-void stack_free_handle(size_t handle){
-    if(MY_ASSERT(handle < HANDLER_MAX_SIZE)) return;
-    if(MY_ASSERT(HANDLERS[handle] != NULL)) return;
+func_errors stack_free_handle(size_t handle){
+    func_errors error = NO_MISTAKE_FUNC;
+    if(MY_ASSERT(handle < HANDLER_MAX_SIZE)) error = error | HANDLE_OUT_OF_IDX;
+    if(MY_ASSERT(HANDLERS[handle] != NULL)) error = error | HANDLE_STACK_NOT_EXISTS;
+    if(error) return error;
 
-    free_stack(delete_handle(handle));
+    func_errors free_err = free_stack(delete_handle(handle));
+    return free_err;
 }
 
 void stack_dump_handle(size_t handle){
