@@ -1,25 +1,27 @@
 #ifndef STACK_FUNC_H
 #define STACK_FUNC_H
-#include <stdlib.h>
-#include <stdio.h>
-#include "structures.h"
+#include "stack.h"
+#include "mistakes_code.h"
 
-StackErr_t StackErr(stack_t_t *stk, FILE *log_file_ptr);
+#ifdef _DEBUG
+    #define STACK_DUMP(stack) stack_dump(stack);
+#else 
+    #define STACK_DUMP(stack)
+#endif //_DEBUG
 
-void StackDump(stack_t_t *stk, StackErr_t err, FILE *log_file_ptr);
+stack_t_t* stack_ctor(long long int num_of_elem, long long int size_of_elem);
 
-StackErr_t StackCtor(stack_t_t *stk, long long int size, FILE *log_file_ptr);
+stack_err_t stack_verify(stack_t_t* stack);
 
-StackErr_t FillPoison(stack_t_t *stk, long long int idx, FILE *log_file_ptr);
+void stack_dump(stack_t_t* stack);
 
-StackErr_t StackPush(stack_t_t *stk, long long int value, FILE *log_file_ptr);
+void stack_push(stack_t_t* stack, const void* elem);
 
-StackErr_t MakeDataSizeBigger(stack_t_t *stk, FILE *log_file_ptr);
+void stack_pop(stack_t_t* stack, void* elem);
 
-StackErr_t StackPop(stack_t_t *stk, stack_elem_t *elem, FILE *log_file_ptr);
+void stack_top(stack_t_t* stack, void* elem);
 
-StackErr_t StackTop(stack_t_t *stk, FILE *log_file_ptr, stack_elem_t *elem);
+void stack_realloc(stack_t_t* stack);
 
-StackErr_t FreeStack(stack_t_t *stk, FILE *log_file_ptr);
-
-#endif // STACK_FUNC_H
+void free_stack(stack_t_t* stack);
+#endif //STACK_FUNC_H

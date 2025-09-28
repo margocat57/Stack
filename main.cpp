@@ -1,66 +1,65 @@
+#include "log.h"
+#include "handlers.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <stdint.h>
-#include <time.h>
-#include "mistake_information.h"
-#include "stack_func.h"
-#include "structures.h"
-#include "work_with_log_file.h"
-#include "init.h"
+
+void stack_work()
+{
+    size_t stack = stack_ctor_handle(3, sizeof(int));
+
+    int value = 1;
+    stack_push_handle(stack, &value);
+
+    value = 2;
+    stack_push_handle(stack, &value);
+
+    value = 3;
+    stack_push_handle(stack, &value);
+
+    value = 4;
+    stack_push_handle(stack, &value);
+
+    int pop_value = 0;
+    stack_pop_handle(stack, &pop_value);
+    printf("pop_value = %d", pop_value);
+
+    pop_value = 0;
+    stack_top_handle(stack, &pop_value);
+    printf("pop_value = %d", pop_value);
+
+    stack_dump_handle(stack);
+
+    stack_free_handle(stack);
+}
+
+void mistakes_at_stack(){
+
+    size_t stack1 = stack_ctor_handle(3, NULL);
+    size_t stack11 = stack_ctor_handle(-6, sizeof(int));
+
+    size_t stack2 = stack_ctor_handle(3, sizeof(int));
+    stack_push_handle(stack2, NULL);
+
+    int s = 1;
+    stack_push_handle(stack2, &s);
+
+    stack_pop_handle(stack2, NULL);
+
+    stack_pop_handle(NULL, NULL);
+
+    stack_free_handle(stack1);
+    stack_free_handle(stack11);
+    stack_free_handle(stack2);
+
+}
+
 
 int main()
-{
-#ifdef _DEBUG
-    DEBUG_STACK = true;
-#endif //_DEBUG
+{   
+    open_log_file("mist.log");
 
-#ifdef _DEBUG
-    stack_t_t stk1 = {.info = INIT(stk1)};
-#else
-    stack_t_t stk1 = {};
-#endif //_DEBUG
+    stack_work();
 
-    FILE *log_file1 = OpenLogFile("mistakes.log");
-
-    // FILE *log_file2 = OpenLogFile(NULL);
-
-    printf("\n1test_start\n");
-    StackErr_t err1 = StackCtor(&stk1, -5, log_file1);
-    printf("\n1st TESTING SIZE\n");
-
-    printf("\n2test_start\n");
-    StackErr_t err2 = StackCtor(NULL, 5, log_file1);
-    printf("\n2nd TESTING NULL_PTR\n");
-
-    StackCtor(&stk1, 5, log_file1);
-    StackPush(&stk1, 1, log_file1);
-    StackPush(&stk1, 2, NULL);
-    StackPush(&stk1, 3, log_file1);
-    StackPush(&stk1, 4, log_file1);
-    // StackDump(&stk1, VAR_NULL_PTR, stdout);
-    StackPush(&stk1, 5, log_file1);
-    // StackDump(&stk1, VAR_NULL_PTR, stdout);
-    StackPush(&stk1, 6, log_file1);
-    // StackDump(&stk1, VAR_NULL_PTR, stdout);
-    /*
-    printf("\n3test_start\n");
-    StackErr_t err3 = StackPush(&stk1, 5);
-    if (err3)
-        StackDump(&stk1, err3);
-    printf("\n3rd TESTING_OUT_OF_IDX\n");
-    */
-
-    printf("\n4test_start\n");
-    stack_elem_t x = 0;
-    StackPop(&stk1, NULL, log_file1);
-    // вот эта ошибка не тестится так как тип данных в стеке не обязательно целочисленный
-    // StackErr_t err4 = StackPush(&stk1, 100000000000000, log_file1);
-    // printf("\n4th TESTING_BIG_DIGIT\n");
-
-    FreeStack(&stk1, log_file1);
-
-    CloseLogFile(log_file1);
+    mistakes_at_stack();
 
     return 0;
 }

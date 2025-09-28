@@ -1,310 +1,208 @@
-#include <stdlib.h>
 #include <limits.h>
-#include "structures.h"
-#include "work_with_log_file.h"
-#include "mistake_information.h"
+#include <stdio.h>
+#include <string.h>
+#include "stack_func.h"
+#include "stack.h"
+#include "hash.h"
+#include "mistakes_code.h"
+#include "my_assert.h"
+#include "log.h"
 
-const stack_elem_t POISON = -6666;
-const stack_elem_t CANAREIKA = 3381;
-const size_t MEMORY_FOR_CANARY = 2;
-bool DEBUG_STACK = false;
-const char *FORM_SPEC_STK_EL = "%d";
+const size_t RESERVED = 2 * sizeof(uintptr_t);
 
-StackErr_t StackErr(stack_t_t *stk, FILE *log_file_ptr)
-{
-    log_file_ptr = GetLogStream(log_file_ptr);
+stack_t_t* stack_ctor(long long int num_of_elem, long long int size_of_elem){
 
-    if (stk == NULL)
-    {
-        fprintf(log_file_ptr, "Accessing to NULL pointer\n");
-        return STK_NULL_PTR;
+    if(MY_ASSERT(0 < num_of_elem && num_of_elem<LLONG_MAX)) return NULL;
+    if(MY_ASSERT(0 < size_of_elem && size_of_elem<LLONG_MAX)) return NULL;
+
+    size_t num_of_elem_st = (size_t) num_of_elem;
+    size_t size_of_elem_st = (size_t) size_of_elem;
+
+    stack_t_t* stack = (stack_t_t*) calloc(1, sizeof(stack_t_t));
+    if(MY_ASSERT(stack!=NULL)) return NULL;
+
+    size_t real_size = num_of_elem_st*size_of_elem_st + RESERVED;
+    stack->data = (char*)calloc(1, real_size);
+
+    if(MY_ASSERT(stack->data!=NULL)){
+        free(stack);
+        return NULL;
     }
-    else if (stk->data == NULL && stk->is_memory_alloc)
-    {
-        fprintf(log_file_ptr, "DATA NULL PTR\n");
-        return DATA_NULL_PTR;
+
+    stack -> front_canary = FRONTCANARY;
+    stack -> tail_canary = TAILCANARY;
+    stack -> ptr = stack -> data + RESERVED/2; // сдвиг на элемент после служебного
+    stack -> capacity = num_of_elem_st;
+    stack -> size_of_elem = size_of_elem_st;
+
+    stack -> djb2 = calculate_struct_hash(stack);
+
+    stack -> djb2_data = create_djb2_hash(stack -> data, real_size);
+
+    if(MY_ASSERT(stack_verify(stack) == NO_MISTAKE)) return NULL;
+
+    return stack;
+}
+
+stack_err_t stack_verify(stack_t_t* stack){
+
+    if(!stack){
+        printf_to_log_file("NULL stack pointer\n");
+        return NULL_STACK_PTR;
     }
-    else if (stk->data != NULL && (stk->ptr < 1 || stk->ptr > stk->capacity + 1))
-    {
-        fprintf(log_file_ptr, "Pointer index out of bounds: %lu (capacity: %lu)\n", stk->ptr, stk->capacity);
-        return OUT_OF_INDEX;
+
+    else if(stack->front_canary != FRONTCANARY || stack->tail_canary != TAILCANARY){
+        printf_to_log_file("CANARIES CORRUPTED\n");
+        return CANARY_ST_NOT_IN_PLACES;
     }
+
+    else if(!stack -> data || !stack->ptr  || stack->capacity == 0 || stack->size_of_elem == 0){
+        printf_to_log_file("Stack important data is zero or null-pointed\n");
+        STACK_DUMP(stack);
+        return NULL_STACK_PTR;
+    }
+
+    else if(stack->ptr < stack->data + RESERVED/2){
+        printf_to_log_file("Stack pointer adress smaller than data adress\n");
+        STACK_DUMP(stack);
+        return PTR_SMALLER_THAN_DATA;
+    }
+
+    else if(stack -> ptr > stack->data + RESERVED/2 + stack->capacity * stack->size_of_elem){
+        printf_to_log_file("Stack pointer adress bigger than data adress\n");
+        STACK_DUMP(stack);
+        return PTR_BIGGER_THAN_DATA;
+    }
+
+    else if(((size_t)stack->ptr - (size_t)(stack->data + sizeof(uintptr_t))) % stack->size_of_elem != 0){
+        printf_to_log_file("Align not correct\n");
+        STACK_DUMP(stack);
+        return ALIGN_NOT_CORRECT;
+    }
+
+    else if (stack -> djb2 != calculate_struct_hash(stack) || stack->djb2 == 1){
+        printf_to_log_file("Stack hash is not correct\n");
+        STACK_DUMP(stack);
+        return STACK_HASH_NOT_CORRECT;
+    }
+
+    else if (stack -> djb2_data != create_djb2_hash(stack -> data, stack->capacity * stack->size_of_elem + RESERVED) || stack->djb2_data == 1){
+        printf_to_log_file("Stack data hash is not correct\n");
+        STACK_DUMP(stack);
+        return DATA_HASH_NOT_CORRECT;
+    }
+
     return NO_MISTAKE;
 }
 
-void StackDump(stack_t_t *stk, StackErr_t err, FILE *log_file_ptr)
-{
-    log_file_ptr = GetLogStream(log_file_ptr);
-
-    fprintf(log_file_ptr, "\n");
-
-    if (DEBUG_STACK && err != STK_NULL_PTR) // доп проверка если надо использовать функцию просто как для вывода
-    {
-        fprintf(log_file_ptr, "name of stack with mistake %s\n", stk->info.name);
-        fprintf(log_file_ptr, "line where it was inicialized %d\n", stk->info.line);
-        fprintf(log_file_ptr, "func where it was inicialized %s\n", stk->info.func);
-        fprintf(log_file_ptr, "file where it was inicialized %s\n", stk->info.file);
+void stack_dump(stack_t_t* stack){
+    if(!stack){
+        printf_to_log_file("Stack can't be printed due to NULL ptr\n");
     }
 
-    fprintf(log_file_ptr, "stack [%p] ", stk);
-    if (err == STK_NULL_PTR)
-    {
-        fprintf(log_file_ptr, "BAD!!!");
+    printf_to_log_file("Stack adress %p\n", stack);
+    printf_to_log_file("Front canary: %X\n", stack->front_canary);
+    printf_to_log_file("Data adress: %p\n", stack->data);
+    printf_to_log_file("Elem pointer adress: %p\n", stack->ptr);
+    printf_to_log_file("Stack capacity: %lu\n", stack->capacity);
+    printf_to_log_file("Stack size of elem: %lu bytes\n", stack->size_of_elem);
+    printf_to_log_file("DJB2 hash for data array: %lu\n", stack->djb2_data);
+    printf_to_log_file("DJB2 hash for whole stack: %lu\n", stack->djb2);
+    printf_to_log_file("Tail canary: %X\n", stack->tail_canary);
+
+    if(stack -> data && stack->ptr  && stack->capacity != 0 && stack->size_of_elem != 0){
+        char* data_start = stack->data + RESERVED/2;
+        for(size_t idx = 0; idx < stack->capacity; idx++) {
+            printf_to_log_file("Number of element in stack %zu\n", idx);
+            printf_to_log_file("Adress of elem [%p]\n", data_start + idx * stack->size_of_elem);
+            
+            for(size_t byte = 0; byte < stack->size_of_elem; byte++) {
+                printf_to_log_file("%02X ", (unsigned char)(data_start + idx * stack->size_of_elem)[byte]);
+            }
+            printf_to_log_file("\n");
+        }
+    }
+}
+
+void stack_push(stack_t_t* stack, const void* elem){
+
+    if(MY_ASSERT(stack_verify(stack) == NO_MISTAKE)) return;
+    if(MY_ASSERT(elem != NULL)) return;
+
+    size_t current_size = ((size_t)stack->ptr - (size_t)(stack->data + RESERVED/ 2)) / (size_t)stack->size_of_elem;
+    if (current_size >= stack->capacity){
+        stack_realloc(stack);
+    }
+    memcpy(stack->ptr, elem, stack->size_of_elem);
+    stack->ptr += stack -> size_of_elem;
+
+    stack ->djb2 = calculate_struct_hash(stack);
+    stack -> djb2_data = create_djb2_hash(stack -> data, stack->size_of_elem * stack->capacity + RESERVED);
+
+    if(MY_ASSERT(stack_verify(stack) == NO_MISTAKE)) return;
+
+}
+
+void stack_pop(stack_t_t* stack, void* elem){
+
+    if(MY_ASSERT(stack_verify(stack) == NO_MISTAKE)) return;
+    if(MY_ASSERT(elem != NULL)) return;
+    
+    if (stack->ptr >= stack->data + RESERVED / 2 + stack->size_of_elem){
+        stack -> ptr -= stack -> size_of_elem;
+        memcpy(elem, stack -> ptr, stack->size_of_elem);
+        memset(stack->ptr, 0, stack->size_of_elem);
+    }
+
+    stack ->djb2 = calculate_struct_hash(stack);
+    stack -> djb2_data = create_djb2_hash(stack -> data, stack->size_of_elem * stack->capacity + RESERVED);
+
+    if(MY_ASSERT(stack_verify(stack) == NO_MISTAKE)) return;
+}
+
+void stack_top(stack_t_t* stack, void* elem){
+
+    if(MY_ASSERT(stack_verify(stack) == NO_MISTAKE)) return;
+    if(MY_ASSERT(elem != NULL)) return;
+    
+    if (stack->ptr >= stack->data + RESERVED / 2 + stack->size_of_elem){
+        stack -> ptr -= stack -> size_of_elem;
+        memcpy(elem, stack -> ptr, stack->size_of_elem);
+        stack -> ptr += stack -> size_of_elem;
         return;
     }
-
-    if (err == INCORR_SIZE)
-    {
-        return;
-    }
-    fprintf(log_file_ptr, "\ncapacity = %lu ", stk->capacity);
-
-    fprintf(log_file_ptr, "\nptr = %lu ", stk->ptr);
-    if (err == OUT_OF_INDEX)
-    {
-        fprintf(log_file_ptr, "BAD!!!");
-    }
-
-    fprintf(log_file_ptr, "\ndata [%p] ", stk->data);
-    if (err == DATA_NULL_PTR)
-    {
-        fprintf(log_file_ptr, "BAD!!!");
-        return;
-    }
-
-    for (size_t idx = 0; idx <= stk->capacity + 1; idx++)
-    {
-        if (stk->data[idx] == POISON)
-        {
-            fprintf(log_file_ptr, "\n[%lu] = ", idx);
-            fprintf(log_file_ptr, FORM_SPEC_STK_EL, stk->data[idx]);
-            fprintf(log_file_ptr, " (POISON)");
-        }
-        else if (stk->data[idx] == CANAREIKA)
-        {
-            fprintf(log_file_ptr, "\n[%lu] = ", idx);
-            fprintf(log_file_ptr, FORM_SPEC_STK_EL, stk->data[idx]);
-            fprintf(log_file_ptr, " (CANAREIKA)");
-        }
-        else
-        {
-            fprintf(log_file_ptr, "\n^[%lu] = ", idx);
-            fprintf(log_file_ptr, FORM_SPEC_STK_EL, stk->data[idx]);
-        }
-    }
 }
 
-StackErr_t FillPoison(stack_t_t *stk, long long int idx, FILE *log_file_ptr)
-{
-    log_file_ptr = GetLogStream(log_file_ptr);
-    StackErr_t mistake = NO_MISTAKE;
+void stack_realloc(stack_t_t* stack){
 
-    if (DEBUG_STACK)
-    {
-        mistake = StackErr(stk, log_file_ptr);
-        MISTAKE_INFO(stk, mistake, before, log_file_ptr);
-    }
+    if(MY_ASSERT(stack_verify(stack) == NO_MISTAKE)) return;
+    
+    size_t new_capacity = stack->capacity * 2;
+    size_t ptr_pos = (size_t)stack->ptr - (size_t)(stack->data + RESERVED/2);
 
-    if (idx <= 0 || idx > LLONG_MAX)
-    {
-        fprintf(log_file_ptr, "Try to set incorrect size of data\n");
-        fprintf(log_file_ptr, "size = %lld\n", idx);
-        MISTAKE_INFO(stk, INCORR_IDX, before, log_file_ptr);
-    }
+    char* new_data = (char*)realloc(stack->data, new_capacity*stack->size_of_elem + RESERVED);
+    if(MY_ASSERT(new_data != NULL)) return;
 
-    size_t index = (size_t)idx;
+    stack->data = new_data;
+    memset(stack->data + RESERVED/2 + stack->capacity * stack->size_of_elem, 0, (new_capacity-stack->capacity)*stack->size_of_elem + RESERVED/2);
 
-    if (stk->data[index] == CANAREIKA)
-    {
-        fprintf(log_file_ptr, "Trying to get access to the elem out of array\n");
-        MISTAKE_INFO(stk, OUT_OF_INDEX, before, log_file_ptr);
-    }
+    stack->capacity = new_capacity;
+    stack->ptr = stack->data + RESERVED/2 + ptr_pos;
 
-    for (; index <= stk->capacity; index++)
-    {
-        stk->data[index] = POISON;
-    }
+    stack ->djb2 = calculate_struct_hash(stack);
+    stack -> djb2_data = create_djb2_hash(stack -> data, stack->size_of_elem * stack->capacity + RESERVED);
 
-    if (DEBUG_STACK)
-    {
-        mistake = StackErr(stk, log_file_ptr);
-        MISTAKE_INFO(stk, mistake, after, log_file_ptr);
-    }
+    if(MY_ASSERT(stack_verify(stack) == NO_MISTAKE)) return;
 
-    // TODO или лучше return mistake; как более понятнее?
-    return NO_MISTAKE;
 }
 
-StackErr_t StackCtor(stack_t_t *stk, long long int size, FILE *log_file_ptr)
-{
-    log_file_ptr = GetLogStream(log_file_ptr);
-    StackErr_t mistake = NO_MISTAKE;
+void free_stack(stack_t_t* stack){
+    if(MY_ASSERT(stack_verify(stack) == NO_MISTAKE)) return;
 
-    if (DEBUG_STACK)
-    {
-        mistake = StackErr(stk, log_file_ptr);
-        MISTAKE_INFO(stk, mistake, before, log_file_ptr);
-    }
+    memset(stack->data, 0, stack->capacity * stack->size_of_elem);
+    free(stack->data);
 
-    if (size <= 0 || size > LLONG_MAX)
-    {
-        fprintf(log_file_ptr, "Try to set incorrect size of data\n");
-        fprintf(log_file_ptr, "size = %lld\n", size);
-        MISTAKE_INFO(stk, INCORR_SIZE, before, log_file_ptr);
-    }
+    memset(stack, 0, sizeof(stack_t_t));
+    free(stack);
 
-    stk->capacity = (size_t)size;
-    stk->data = (stack_elem_t *)calloc(stk->capacity + MEMORY_FOR_CANARY, sizeof(stack_elem_t));
-
-    if (stk->data == NULL)
-    {
-        fprintf(log_file_ptr, "Allocation error\n");
-        MISTAKE_INFO(stk, DATA_NULL_PTR, after, log_file_ptr);
-    }
-
-    stk->data[0] = CANAREIKA;
-    stk->data[stk->capacity + 1] = CANAREIKA;
-
-    stk->is_memory_alloc = true;
-    stk->ptr = 1;
-
-    FillPoison(stk, 1, log_file_ptr);
-
-    if (DEBUG_STACK)
-    {
-        mistake = StackErr(stk, log_file_ptr);
-        MISTAKE_INFO(stk, mistake, after, log_file_ptr);
-    }
-    return NO_MISTAKE;
-}
-
-StackErr_t MakeDataSizeBigger(stack_t_t *stk, FILE *log_file_ptr)
-{
-    log_file_ptr = GetLogStream(log_file_ptr);
-    StackErr_t mistake = NO_MISTAKE;
-
-    if (DEBUG_STACK)
-    {
-        StackErr_t mistake = StackErr(stk, log_file_ptr);
-        MISTAKE_INFO(stk, mistake, before, log_file_ptr);
-    }
-    size_t capacity_old = stk->capacity;
-    stk->capacity = stk->capacity * 2;
-
-    stack_elem_t *new_data = (stack_elem_t *)realloc(stk->data, (stk->capacity + MEMORY_FOR_CANARY) * sizeof(stack_elem_t));
-    if (new_data == NULL)
-    {
-        stk->capacity = capacity_old;
-        fprintf(log_file_ptr, "ALLOCATION MISTAKE at reallocation");
-        return REALLOC_MISTAKE;
-    }
-    stk->data = new_data;
-
-    stk->data[capacity_old + 1] = POISON;
-    stk->data[stk->capacity + 1] = CANAREIKA;
-    FillPoison(stk, capacity_old + 2, log_file_ptr);
-
-    if (DEBUG_STACK)
-    {
-        mistake = StackErr(stk, log_file_ptr);
-        MISTAKE_INFO(stk, mistake, after, log_file_ptr);
-    }
-
-    return NO_MISTAKE;
-}
-
-StackErr_t StackPush(stack_t_t *stk, long long int value, FILE *log_file_ptr)
-{
-    log_file_ptr = GetLogStream(log_file_ptr);
-    StackErr_t mistake = NO_MISTAKE;
-
-    if (DEBUG_STACK)
-    {
-        StackErr_t mistake = StackErr(stk, log_file_ptr);
-        MISTAKE_INFO(stk, mistake, before, log_file_ptr);
-    }
-
-    stk->data[stk->ptr] = (stack_elem_t)value;
-
-    if (stk->ptr >= stk->capacity)
-    {
-        MakeDataSizeBigger(stk, log_file_ptr);
-    }
-
-    stk->ptr++;
-
-    if (DEBUG_STACK)
-    {
-        mistake = StackErr(stk, log_file_ptr);
-        MISTAKE_INFO(stk, mistake, after, log_file_ptr);
-    }
-
-    return NO_MISTAKE;
-}
-
-StackErr_t StackPop(stack_t_t *stk, stack_elem_t *elem, FILE *log_file_ptr)
-{
-    log_file_ptr = GetLogStream(log_file_ptr);
-    StackErr_t mistake = NO_MISTAKE;
-
-    if (DEBUG_STACK)
-    {
-        StackErr_t mistake = StackErr(stk, log_file_ptr);
-        MISTAKE_INFO(stk, mistake, before, log_file_ptr);
-    }
-
-    if (elem == NULL)
-    {
-        fprintf(log_file_ptr, "NULL POINTER to elem where value is written\n");
-        MISTAKE_INFO(stk, VAR_NULL_PTR, before, log_file_ptr);
-    }
-
-    if (stk->ptr != 1)
-        stk->ptr--;
-
-    *elem = stk->data[stk->ptr];
-    stk->data[stk->ptr] = POISON;
-
-    if (DEBUG_STACK)
-    {
-        mistake = StackErr(stk, log_file_ptr);
-        MISTAKE_INFO(stk, mistake, after, log_file_ptr);
-    }
-
-    return NO_MISTAKE;
-}
-
-StackErr_t StackTop(stack_t_t *stk, FILE *log_file_ptr, stack_elem_t *elem)
-{
-    log_file_ptr = GetLogStream(log_file_ptr);
-
-    if (DEBUG_STACK)
-    {
-        StackErr_t mistake = StackErr(stk, log_file_ptr);
-        MISTAKE_INFO(stk, mistake, before, log_file_ptr);
-    }
-
-    if (elem == NULL)
-    {
-        fprintf(log_file_ptr, "NULL POINTER to elem where value is written\n");
-        MISTAKE_INFO(stk, VAR_NULL_PTR, before, log_file_ptr);
-    }
-
-    *elem = stk->data[stk->ptr];
-    return NO_MISTAKE;
-}
-
-StackErr_t FreeStack(stack_t_t *stk, FILE *log_file_ptr)
-{
-    log_file_ptr = GetLogStream(log_file_ptr);
-
-    if (DEBUG_STACK)
-    {
-        StackErr_t mistake = StackErr(stk, log_file_ptr);
-        MISTAKE_INFO(stk, mistake, before, log_file_ptr);
-    }
-
-    free(stk->data);
-    stk->data = NULL;
-    return NO_MISTAKE;
 }

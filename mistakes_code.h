@@ -1,0 +1,18 @@
+#ifndef MISTAKES_CODE_H
+#define MISTAKES_CODE_H
+#include "stack.h"
+
+enum stack_err_t {
+    NO_MISTAKE,
+    NULL_STACK_PTR,
+    NULL_STACK_ELEM,
+    CANARY_ST_NOT_IN_PLACES,
+    PTR_SMALLER_THAN_DATA,
+    PTR_BIGGER_THAN_DATA,
+    ALIGN_NOT_CORRECT,
+    STACK_HASH_NOT_CORRECT,
+    DATA_HASH_NOT_CORRECT
+};
+
+
+#endif //MISTAKES_CODE_H
