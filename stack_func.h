@@ -1,6 +1,6 @@
 #ifndef STACK_FUNC_H
 #define STACK_FUNC_H
-#include "stack.h"
+#include <stdint.h>
 #include "mistakes_code.h"
 
 typedef int64_t verify_errors; 
@@ -17,6 +17,8 @@ typedef int64_t func_errors;
 #else 
     #define DEBUG(...)
 #endif //_DEBUG
+
+struct stack_t_t;
 
 stack_t_t* stack_ctor(long long int num_of_elem, long long int size_of_elem, const char* file, const char* func, int line);
 

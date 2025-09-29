@@ -9,7 +9,7 @@ CFLAGS = -D _DEBUG -ggdb3 -std=c++20 -O0 -Wall -Wextra -Weffc++ -Wc++14-compat -
 %.o: %.cpp
 	$(COMP) -c $< -o $@ $(CFLAGS) 
 
-stack: main.o handlers.o hash.o log.o my_assert.o stack_func.o
+stack: main.o hash.o log.o my_assert.o stack_func.o
 	$(COMP) -o $@ $^ 
 # clang++ -o quadratic main.o input.o clear_input.o solver.o output.o comparison.o choose_output_file.o color_printf.o
 

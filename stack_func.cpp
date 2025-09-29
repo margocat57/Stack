@@ -3,7 +3,6 @@
 #include <string.h>
 #include <stdint.h>
 #include "stack_func.h"
-#include "stack.h"
 #include "hash.h"
 #include "mistakes_code.h"
 #include "my_assert.h"
@@ -11,9 +10,32 @@
 
 const size_t RESERVED = 2 * sizeof(uintptr_t);
 
+const size_t FRONTCANARY_STACK = 0x42554A42;
+const size_t TAILCANARY_STACK = 0x44454444;
+
+const size_t FRONTCANARY_DATA = 0x4255463132333445;
+const size_t TAILCANARY_DATA = 0x4E45534255464145;
+
+struct stack_t_t
+{
+    size_t front_canary;
+    char *ptr;
+    char *data;
+    const char *file;
+    const char *func;
+    int line;
+    size_t capacity;
+    size_t size_of_elem;
+    size_t djb2_data;
+    size_t djb2_stack;
+    size_t tail_canary;
+};
+
 func_errors stack_realloc(stack_t_t* stack);
 
 void bytes_dump(char* dump_data, size_t max_size_elem);
+
+void update_stack_data_hash(stack_t_t* stack);
 
 stack_t_t* stack_ctor(long long int num_of_elem, long long int size_of_elem, const char* file, const char* func, int line){
     if(MY_ASSERT(0 < num_of_elem && num_of_elem < LLONG_MAX)) return NULL;
@@ -45,9 +67,7 @@ stack_t_t* stack_ctor(long long int num_of_elem, long long int size_of_elem, con
     memcpy(stack->data, &FRONTCANARY_DATA, sizeof(RESERVED/2));
     memcpy(stack->data + RESERVED / 2 + stack->capacity*stack->size_of_elem, &TAILCANARY_DATA, sizeof(RESERVED/2));
 
-    stack -> djb2_stack = calculate_struct_hash(stack);
-
-    stack -> djb2_data = create_djb2_hash(stack -> data, real_size);
+    update_stack_data_hash(stack);
 
     if(MY_ASSERT(stack_verify(stack) == NO_MISTAKE)) return NULL;
 
@@ -98,18 +118,19 @@ verify_errors stack_verify(stack_t_t* stack){
     )
 
     DEBUG(
-    if (stack -> djb2_stack != calculate_struct_hash(stack)){
+    size_t stack_old = stack -> djb2_stack;
+    size_t data_old = stack -> djb2_data;
+    update_stack_data_hash(stack);
+
+    if (stack_old != stack -> djb2_stack){
         printf_to_log_file("Stack hash is not correct\n");
-        printf_to_log_file("hash = %lu", calculate_struct_hash(stack));
         STACK_DUMP(stack);
         error = error | STACK_HASH_NOT_CORRECT;
     }
-    )
 
-    DEBUG(
-    if (stack -> djb2_data != create_djb2_hash(stack -> data, stack->capacity * stack->size_of_elem + RESERVED)){
+    stack -> djb2_data = create_djb2_hash(stack -> data, stack->capacity * stack->size_of_elem + RESERVED);
+    if (data_old != stack -> djb2_data){
         printf_to_log_file("Stack data hash is not correct\n");
-        printf_to_log_file("hash = %lu", create_djb2_hash(stack -> data, stack->capacity * stack->size_of_elem + RESERVED));
         STACK_DUMP(stack);
         error = error | DATA_HASH_NOT_CORRECT;
     }
@@ -174,6 +195,15 @@ void bytes_dump(char* dump_data, size_t max_size_elem){
     printf_to_log_file("\n");
 }
 
+void update_stack_data_hash(stack_t_t* stack){
+    stack -> djb2_stack = 0;
+    stack -> djb2_data = 0;
+    size_t size = (size_t)((char*)&stack->tail_canary - (char*)&stack->front_canary) + sizeof(stack->tail_canary);
+    stack -> djb2_stack = create_djb2_hash((char*)stack, size);
+    stack -> djb2_data = create_djb2_hash(stack -> data, stack->size_of_elem * stack->capacity + RESERVED);
+}
+
+
 func_errors stack_push(stack_t_t* stack, const void* elem){
 
     func_errors error = NO_MISTAKE_FUNC; 
@@ -188,8 +218,7 @@ func_errors stack_push(stack_t_t* stack, const void* elem){
     memcpy(stack->ptr, elem, stack->size_of_elem);
     stack->ptr += stack -> size_of_elem;
 
-    stack ->djb2_stack = calculate_struct_hash(stack);
-    stack -> djb2_data = create_djb2_hash(stack -> data, stack->size_of_elem * stack->capacity + RESERVED);
+    update_stack_data_hash(stack);
 
     if(MY_ASSERT(stack_verify(stack) == NO_MISTAKE)) error = error | VERIFY_FAILED;
     return error;
@@ -204,8 +233,7 @@ func_errors stack_pop(stack_t_t* stack, void* elem){
             stack -> ptr -= stack -> size_of_elem;
             memset(stack->ptr, 0, stack->size_of_elem);
 
-            stack ->djb2_stack = calculate_struct_hash(stack);
-            stack -> djb2_data = create_djb2_hash(stack -> data, stack->size_of_elem * stack->capacity + RESERVED);
+            update_stack_data_hash(stack);
         }
         return NO_MISTAKE_FUNC;
     }
@@ -216,8 +244,7 @@ func_errors stack_pop(stack_t_t* stack, void* elem){
         memset(stack->ptr, 0, stack->size_of_elem);
     }
 
-    stack ->djb2_stack = calculate_struct_hash(stack);
-    stack -> djb2_data = create_djb2_hash(stack -> data, stack->size_of_elem * stack->capacity + RESERVED);
+    update_stack_data_hash(stack);
 
     if(MY_ASSERT(stack_verify(stack) == NO_MISTAKE)) return VERIFY_FAILED;
     return NO_MISTAKE_FUNC;
@@ -257,8 +284,7 @@ func_errors stack_realloc(stack_t_t* stack){
 
     memcpy(stack->data + RESERVED / 2 + stack->capacity*stack->size_of_elem, &TAILCANARY_DATA, sizeof(RESERVED/2));
 
-    stack ->djb2_stack = calculate_struct_hash(stack);
-    stack -> djb2_data = create_djb2_hash(stack -> data, stack->size_of_elem * stack->capacity + RESERVED);
+    update_stack_data_hash(stack);
 
     if(MY_ASSERT(stack_verify(stack) == NO_MISTAKE)) return VERIFY_FAILED;
     return NO_MISTAKE_FUNC;

@@ -1,6 +1,5 @@
 #ifndef MISTAKES_CODE_H
 #define MISTAKES_CODE_H
-#include "stack.h"
 
 enum stack_err_t {
     NO_MISTAKE              = 0,

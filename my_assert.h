@@ -1,6 +1,5 @@
 #ifndef MY_ASSERT_H
 #define MY_ASSERT_H
-#include "stack.h"
 #include "mistakes_code.h"
 
 #define MY_ASSERT(condition)   \
