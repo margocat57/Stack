@@ -6,7 +6,7 @@
 
 const size_t HANDLER_MAX_SIZE = 2048;
 
-size_t stack_ctor_handle(long long int num_of_elem, long long int size_of_elem);
+size_t stack_ctor_handle(long long int num_of_elem, long long int size_of_elem, const char* file, const char* func, int line);
 
 func_errors stack_push_handle(size_t handle, const void* elem);
 

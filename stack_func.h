@@ -18,7 +18,7 @@ typedef int64_t func_errors;
     #define DEBUG(...)
 #endif //_DEBUG
 
-stack_t_t* stack_ctor(long long int num_of_elem, long long int size_of_elem);
+stack_t_t* stack_ctor(long long int num_of_elem, long long int size_of_elem, const char* file, const char* func, int line);
 
 verify_errors stack_verify(stack_t_t* stack);
 
@@ -30,5 +30,5 @@ func_errors stack_pop(stack_t_t* stack, void* elem);
 
 func_errors stack_top(stack_t_t* stack, void* elem);
 
-func_errors free_stack(stack_t_t* stack);
+func_errors stack_free(stack_t_t* stack);
 #endif //STACK_FUNC_H

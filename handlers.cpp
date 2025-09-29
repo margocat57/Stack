@@ -12,9 +12,8 @@ static size_t create_handle(stack_t_t* stack);
 static stack_t_t* delete_handle(size_t handle);
 
 static size_t create_handle(stack_t_t* stack){
-
-    if(MY_ASSERT(stack_verify(stack) == NO_MISTAKE)) return 0;
-    if(MY_ASSERT(FREE_HANDLE < HANDLER_MAX_SIZE)) return 0;
+    if(MY_ASSERT(stack_verify(stack) == NO_MISTAKE)) return HANDLER_MAX_SIZE + 1;
+    if(MY_ASSERT(FREE_HANDLE < HANDLER_MAX_SIZE)) return HANDLER_MAX_SIZE + 1;
 
     while(HANDLERS[FREE_HANDLE]){
         FREE_HANDLE++;
@@ -39,8 +38,8 @@ static stack_t_t* delete_handle(size_t handle){
     return NULL;
 }
 
-size_t stack_ctor_handle(long long int num_of_elem, long long int size_of_elem){
-    stack_t_t* stack = stack_ctor(num_of_elem, size_of_elem);
+size_t stack_ctor_handle(long long int num_of_elem, long long int size_of_elem, const char* file, const char* func, int line){
+    stack_t_t* stack = stack_ctor(num_of_elem, size_of_elem, file, func, line);
     return create_handle(stack);
 }
 
@@ -83,7 +82,7 @@ func_errors stack_free_handle(size_t handle){
     if(MY_ASSERT(HANDLERS[handle] != NULL)) error = error | HANDLE_STACK_NOT_EXISTS;
     if(error) return error;
 
-    func_errors free_err = free_stack(delete_handle(handle));
+    func_errors free_err = stack_free(delete_handle(handle));
     return free_err;
 }
 

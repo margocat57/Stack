@@ -11,7 +11,8 @@ enum stack_err_t {
     PTR_BIGGER_THAN_DATA    = 1 << 4,
     ALIGN_NOT_CORRECT       = 1 << 5,
     STACK_HASH_NOT_CORRECT  = 1 << 6,
-    DATA_HASH_NOT_CORRECT   = 1 << 7
+    DATA_HASH_NOT_CORRECT   = 1 << 7,
+    CANARY_DT_NOT_IN_PLACES = 1 << 8
 };
 
 enum func_param_err_t{

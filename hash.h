@@ -1,7 +1,8 @@
 #ifndef HASH_H
 #define HASH_H
 #include "stdlib.h"
-#include <sys/types.h>
+#include "stack.h"
+
 
 struct temp_struct{
     size_t front_canary;
