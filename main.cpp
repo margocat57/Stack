@@ -31,14 +31,14 @@ void stack_work()
     stack_free(stack);
 }
 
-void mistakes_at_stack(){
-
+void mistakes_at_stack()
+{
     stack_t_t *stack1 = stack_ctor(3, NULL, __FILE__, __PRETTY_FUNCTION__, __LINE__);
     stack_t_t *stack11 = stack_ctor(-6, sizeof(int), __FILE__, __PRETTY_FUNCTION__, __LINE__);
 
     stack_t_t *stack2 = stack_ctor(3, sizeof(int), __FILE__, __PRETTY_FUNCTION__, __LINE__);
     stack_push(stack2, NULL);
-    
+
     int s = 1;
     stack_push(stack2, &s);
 
@@ -53,12 +53,10 @@ void mistakes_at_stack(){
     stack_free(stack1);
     stack_free(stack11);
     stack_free(stack2);
-
 }
 
-
 int main()
-{   
+{
     open_log_file("mist.log");
 
     stack_work();
