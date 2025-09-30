@@ -74,8 +74,8 @@ stack_t_t *stack_ctor(long long int num_of_elem, const char *file, const char *f
     if (MY_ASSERT(stack != NULL))
         return NULL;
 
-    size_t real_size = num_of_elem_st  DEBUG (+ CANARY_ELEMS);
-    stack->data = (stack_elem_t *)calloc(real_size, sizeof(stack_t_t));
+    size_t real_size = num_of_elem_st DEBUG (+ CANARY_ELEMS);
+    stack->data = (stack_elem_t *)calloc(real_size, sizeof(stack_elem_t));
 
     if (MY_ASSERT(stack->data != NULL))
     {
@@ -85,7 +85,7 @@ stack_t_t *stack_ctor(long long int num_of_elem, const char *file, const char *f
 
     stack->front_canary = FRONTCANARY_STACK;
     stack->tail_canary = TAILCANARY_STACK;
-    stack->top = 0 DEBUG(+ CANARY_ELEMS/2 - 1); 
+    stack->top = 0 DEBUG(+ CANARY_ELEMS/2); 
     stack->capacity = num_of_elem_st;
     DEBUG(
     stack->file = file;
@@ -98,7 +98,7 @@ stack_t_t *stack_ctor(long long int num_of_elem, const char *file, const char *f
     (stack->data)[stack->capacity - 1 + CANARY_ELEMS] = TAILCANARY_DATA;
     )
 
-    fill_poison(stack, 1, stack->capacity - 1 + CANARY_ELEMS / 2);
+    fill_poison(stack, 1, stack->capacity - 1  DEBUG(+ CANARY_ELEMS / 2));
 
     DEBUG(update_stack_data_hash(stack);)
 
@@ -151,7 +151,7 @@ verify_errors stack_verify(stack_t_t *stack)
     }
 
 
-    if (stack->top >= stack->capacity - 1 DEBUG( + CANARY_ELEMS)) {
+    if (stack->top > stack->capacity - 1 DEBUG( + CANARY_ELEMS)) {
         printf_to_log_file("Stack pointer adress bigger than data adress\n");
         STACK_DUMP(stack);
         return PTR_BIGGER_THAN_DATA;
@@ -214,7 +214,7 @@ void stack_dump(stack_t_t *stack)
 
     if (stack->data && stack->capacity != 0)
     {
-        for (size_t idx = 0; idx <= stack->capacity + CANARY_ELEMS - 1; idx++)
+        for (size_t idx = 0; idx <= stack->capacity DEBUG(+ CANARY_ELEMS) - 1; idx++)
         {
             if (stack->data[idx] == POISON)
             {
@@ -265,13 +265,13 @@ func_errors stack_push(stack_t_t *stack, stack_elem_t *elem)
     if (error)
         return error;
 
-    stack->top += 1;
-    if (stack->top >= stack->capacity)
+    if (stack->top + 1 >= stack->capacity)
     {  
         DEBUG(update_stack_data_hash(stack);)
         stack_realloc(stack);
     }
     stack->data[stack -> top] = *elem;
+    stack->top++;
 
     DEBUG(update_stack_data_hash(stack);)
 
@@ -286,20 +286,20 @@ func_errors stack_pop(stack_t_t *stack, stack_elem_t *elem)
         return VERIFY_FAILED;
     if (!elem)
     {
-        if (stack->top >= 0 DEBUG(+ CANARY_ELEMS / 2))
-        {
+        if (stack->top > 0 DEBUG(+ CANARY_ELEMS / 2))
+        {   
+            stack->top--;
             stack->data[stack -> top] = POISON;
-            stack->top -= 1;
             DEBUG(update_stack_data_hash(stack);)
         }
         return NO_MISTAKE_FUNC;
     }
 
-    if (stack->top >= 0 DEBUG(+ CANARY_ELEMS / 2))
+    if (stack->top > 0 DEBUG(+ CANARY_ELEMS / 2))
     {   
+        stack->top--;
         *elem = stack->data[stack -> top];
         stack->data[stack -> top] = POISON;
-        stack->top -= 1;
     }
 
     DEBUG(update_stack_data_hash(stack);)
@@ -319,9 +319,11 @@ func_errors stack_top(stack_t_t *stack, stack_elem_t *elem)
     if (error)
         return error;
 
-    if (stack->top >=  0 DEBUG(+ CANARY_ELEMS / 2))
-    {
+    if (stack->top > 0 DEBUG(+ CANARY_ELEMS / 2))
+    {   
+        stack->top--;
         *elem = stack->data[stack -> top];
+        stack->top++;
     }
 
     return NO_MISTAKE_FUNC;
@@ -341,7 +343,7 @@ func_errors stack_realloc(stack_t_t *stack)
         return ALLOC_ERROR;
 
     stack->data = new_data;
-    fill_poison(stack, old_capacity + CANARY_ELEMS - 1, stack->capacity - 1 + CANARY_ELEMS / 2);
+    fill_poison(stack, old_capacity DEBUG (+ CANARY_ELEMS) - 1, stack->capacity - 1 DEBUG (+ CANARY_ELEMS / 2));
 
     DEBUG(
     stack->data[CANARY_ELEMS + stack->capacity - 1] = TAILCANARY_DATA;

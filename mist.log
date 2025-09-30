@@ -1,24 +1,85 @@
-Stack was created at main.cpp void stack_work() 7
-Stack adress 0x7feba9f05e60
+Stack adress 0x7fdcb4904100
 Front stack canary: 42554A42
-Data adress: 0x7feba9f05c30
+Data adress: 0x7fdcb4904150
+Pointer points at: 1
+Stack capacity: 3
+Tail stack canary: 44454444
+^[0] = 1
+[1] = -6666 (POISON)
+[2] = -6666 (POISON)
+
+Stack adress 0x7fdcb4904100
+Front stack canary: 42554A42
+Data adress: 0x7fdcb4904150
+Pointer points at: 2
+Stack capacity: 3
+Tail stack canary: 44454444
+^[0] = 1
+^[1] = 2
+[2] = -6666 (POISON)
+
+Stack adress 0x7fdcb4904100
+Front stack canary: 42554A42
+Data adress: 0x7fdcb4904150
 Pointer points at: 3
 Stack capacity: 6
-DJB2 hash for data array: 7575497978468013
-DJB2 hash for whole stack: 370763402764629691
 Tail stack canary: 44454444
-[0] = 47789 (FRONT DATA CANARY)
-^[1] = 1
-^[2] = 2
-^[3] = 3
+^[0] = 1
+^[1] = 2
+^[2] = 3
+[3] = -6666 (POISON)
 [4] = -6666 (POISON)
 [5] = -6666 (POISON)
-[6] = -6666 (POISON)
-[7] = 51966 (TAIL DATA CANARY)
 
-stack_func.cpp: stack_t_t *stack_ctor(long long, const char *, const char *, int) line 68, assertion failed at 0 < num_of_elem && num_of_elem < LLONG_MAX
-stack_func.cpp: func_errors stack_push(stack_t_t *, stack_elem_t *) line 263, assertion failed at elem != NULL
-NULL stack pointer
-stack_func.cpp: func_errors stack_pop(stack_t_t *, stack_elem_t *) line 285, assertion failed at stack_verify(stack) == NO_MISTAKE
-NULL stack pointer
-stack_func.cpp: func_errors stack_free(stack_t_t *) line 360, assertion failed at stack_verify(stack) == NO_MISTAKE
+Stack adress 0x7fdcb4904100
+Front stack canary: 42554A42
+Data adress: 0x7fdcb4904150
+Pointer points at: 4
+Stack capacity: 6
+Tail stack canary: 44454444
+^[0] = 1
+^[1] = 2
+^[2] = 3
+^[3] = 4
+[4] = -6666 (POISON)
+[5] = -6666 (POISON)
+
+Stack adress 0x7fdcb4904100
+Front stack canary: 42554A42
+Data adress: 0x7fdcb4904150
+Pointer points at: 3
+Stack capacity: 6
+Tail stack canary: 44454444
+^[0] = 1
+^[1] = 2
+^[2] = 3
+[3] = -6666 (POISON)
+[4] = -6666 (POISON)
+[5] = -6666 (POISON)
+
+Stack adress 0x7fdcb4904100
+Front stack canary: 42554A42
+Data adress: 0x7fdcb4904150
+Pointer points at: 3
+Stack capacity: 6
+Tail stack canary: 44454444
+^[0] = 1
+^[1] = 2
+^[2] = 3
+[3] = -6666 (POISON)
+[4] = -6666 (POISON)
+[5] = -6666 (POISON)
+
+Stack adress 0x7fdcb4904100
+Front stack canary: 42554A42
+Data adress: 0x7fdcb4904150
+Pointer points at: 3
+Stack capacity: 6
+Tail stack canary: 44454444
+^[0] = 1
+^[1] = 2
+^[2] = 3
+[3] = -6666 (POISON)
+[4] = -6666 (POISON)
+[5] = -6666 (POISON)
+

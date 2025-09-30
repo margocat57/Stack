@@ -8,29 +8,29 @@ void stack_work()
 
     int value = 1;
     stack_push(stack, &value);
-    // stack_dump(stack);
+    stack_dump(stack);
 
     value = 2;
     stack_push(stack, &value);
-    // stack_dump(stack);
+    stack_dump(stack);
 
     value = 3;
     stack_push(stack, &value);
-    // stack_dump(stack);
+    stack_dump(stack);
 
     value = 4;
     stack_push(stack, &value);
-    // stack_dump(stack);
+    stack_dump(stack);
 
     int pop_value = 0;
     stack_pop(stack, &pop_value);
     printf("pop_value = %d\n", pop_value);
-    // stack_dump(stack);
+    stack_dump(stack);
 
     pop_value = 0;
     stack_top(stack, &pop_value);
     printf("top_value = %d\n", pop_value);
-    // stack_dump(stack);
+    stack_dump(stack);
 
     stack_dump(stack);
 
@@ -65,7 +65,7 @@ int main()
 
     stack_work();
 
-    mistakes_at_stack();
+    DEBUG(mistakes_at_stack();)
 
     return 0;
 }
