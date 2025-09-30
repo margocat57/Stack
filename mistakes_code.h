@@ -21,7 +21,8 @@ enum func_param_err_t{
     NO_MISTAKE_FUNC         = 0,
     FUNC_PARAM_IS_NULL      = 1 << 0, //!< Parametr given to function is NULL
     VERIFY_FAILED           = 1 << 1, //!< Stack verification failed
-    ALLOC_ERROR             = 1 << 2  //!< Allocation error
+    ALLOC_ERROR             = 1 << 2, //!< Allocation error
+    INCORR_DIGIT_PARAMS     = 1 << 3
 };
 
 

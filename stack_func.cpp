@@ -9,29 +9,31 @@
 #include "my_assert.h"
 #include "log.h"
 
+const char *FORM_SPEC_STK_EL = "%d";
+const int POISON = -6666;
+
 //! Memory for canaries in data array
-const size_t RESERVED = 2 * sizeof(uintptr_t);
+const size_t CANARY_ELEMS = 2;
 
 const size_t FRONTCANARY_STACK = 0x42554A42;
 const size_t TAILCANARY_STACK = 0x44454444;
 
-const size_t FRONTCANARY_DATA = 0x4255463132333445;
-const size_t TAILCANARY_DATA = 0x4E45534255464145;
+const stack_elem_t FRONTCANARY_DATA = 0xBAAD;
+const stack_elem_t TAILCANARY_DATA = 0xCAFE;
 
 //! Structure for containing stack
 struct stack_t_t
 {
     size_t front_canary; //!< front stack canary
-    char *ptr;           //!< pointer to the top of the stack
-    char *data;          //!< array of stack elements
+    size_t top;          //!< pointer to the top of the stack
+    stack_elem_t *data;  //!< array of stack elements
     const char *file;    //!< file where stack was inicialized
     const char *func;    //!< function where stack was inicialized
     int line;            //!< line where stack was inicialized
     size_t capacity;     //!< quantaty of elements in stack
-    size_t size_of_elem; //!< size of stack element
-    size_t djb2_data;    //! hash for data array
-    size_t djb2_stack;   //! hash for stack
-    size_t tail_canary;  //! tail stack canary
+    size_t djb2_data;    //!< hash for data array
+    size_t djb2_stack;   //!< hash for stack
+    size_t tail_canary;  //!< tail stack canary
 };
 
 //! Stack memory expansion function
@@ -51,14 +53,6 @@ struct stack_t_t
 //! Returns ALLOC_ERROR if realloc() fails
 func_errors stack_realloc(stack_t_t *stack);
 
-//! Byte dump function for hexadecimal memory representation
-//!
-//! Prints hexadecimal representation of memory bytes
-//!     Each byte is printed as two-digit hexadecimal number
-//!     Output is formatted with spaces between bytes and newline at end
-//! If dump_data is NULL, function returns early
-void bytes_dump(char *dump_data, size_t max_size_elem);
-
 //! Stack hash update function 
 //!
 //! Calculates two separate hashes:
@@ -67,22 +61,21 @@ void bytes_dump(char *dump_data, size_t max_size_elem);
 //! @note Hash calculation includes canaries 
 void update_stack_data_hash(stack_t_t *stack);
 
-stack_t_t *stack_ctor(long long int num_of_elem, long long int size_of_elem, const char *file, const char *func, int line)
+verify_errors fill_poison(stack_t_t* stack, size_t start, size_t end);
+
+stack_t_t *stack_ctor(long long int num_of_elem, const char *file, const char *func, int line)
 {
     if (MY_ASSERT(0 < num_of_elem && num_of_elem < LLONG_MAX))
         return NULL;
-    if (MY_ASSERT(0 < size_of_elem && size_of_elem < LLONG_MAX))
-        return NULL;
 
     size_t num_of_elem_st = (size_t)num_of_elem;
-    size_t size_of_elem_st = (size_t)size_of_elem;
 
     stack_t_t *stack = (stack_t_t *)calloc(1, sizeof(stack_t_t));
     if (MY_ASSERT(stack != NULL))
         return NULL;
 
-    size_t real_size = num_of_elem_st * size_of_elem_st + RESERVED;
-    stack->data = (char *)calloc(real_size, 1);
+    size_t real_size = num_of_elem_st  DEBUG (+ CANARY_ELEMS);
+    stack->data = (stack_elem_t *)calloc(real_size, sizeof(stack_t_t));
 
     if (MY_ASSERT(stack->data != NULL))
     {
@@ -92,9 +85,8 @@ stack_t_t *stack_ctor(long long int num_of_elem, long long int size_of_elem, con
 
     stack->front_canary = FRONTCANARY_STACK;
     stack->tail_canary = TAILCANARY_STACK;
-    stack->ptr = stack->data + RESERVED / 2; // сдвиг на элемент после служебного
+    stack->top = 0 DEBUG(+ CANARY_ELEMS/2 - 1); 
     stack->capacity = num_of_elem_st;
-    stack->size_of_elem = size_of_elem_st;
     DEBUG(
     stack->file = file;
     stack->func = func;
@@ -102,9 +94,11 @@ stack_t_t *stack_ctor(long long int num_of_elem, long long int size_of_elem, con
     )
 
     DEBUG(
-    memcpy(stack->data, &FRONTCANARY_DATA, sizeof(RESERVED / 2));
-    memcpy(stack->data + RESERVED / 2 + stack->capacity * stack->size_of_elem, &TAILCANARY_DATA, sizeof(RESERVED / 2));
+    *stack->data = FRONTCANARY_DATA;
+    (stack->data)[stack->capacity - 1 + CANARY_ELEMS] = TAILCANARY_DATA;
     )
+
+    fill_poison(stack, 1, stack->capacity - 1 + CANARY_ELEMS / 2);
 
     DEBUG(update_stack_data_hash(stack);)
 
@@ -112,6 +106,19 @@ stack_t_t *stack_ctor(long long int num_of_elem, long long int size_of_elem, con
         return NULL;
 
     return stack;
+}
+
+verify_errors fill_poison(stack_t_t* stack, size_t start, size_t end){
+    if(MY_ASSERT(stack->top <= start && start < stack->capacity + CANARY_ELEMS)) 
+        return INCORR_DIGIT_PARAMS;
+    if(MY_ASSERT(stack->top <= end && end < stack->capacity + CANARY_ELEMS)) 
+        return INCORR_DIGIT_PARAMS;
+
+    for (size_t index = start; index <= end; index++)
+    {
+        stack->data[index] = POISON;
+    }
+    return NO_MISTAKE_FUNC;
 }
 
 verify_errors stack_verify(stack_t_t *stack)
@@ -130,36 +137,26 @@ verify_errors stack_verify(stack_t_t *stack)
         return CANARY_ST_NOT_IN_PLACES;
     }
 
-    if (!stack->data || !stack->ptr || stack->capacity == 0 || stack->size_of_elem == 0)
+    if (!stack->data || stack->capacity == 0)
     {
         printf_to_log_file("Stack important data is zero or null-pointed\n");
         STACK_DUMP(stack);
         return NULL_STACK_PTR;
     }
 
-    DEBUG(
-        if (stack->ptr < stack->data + RESERVED / 2) {
-            printf_to_log_file("Stack pointer adress smaller than data adress\n");
-            STACK_DUMP(stack);
-            error = error | PTR_SMALLER_THAN_DATA;
-        }
-    )
+    if (stack->top < 0 DEBUG( + CANARY_ELEMS/2 - 1)){
+        printf_to_log_file("Stack pointer adress smaller than data adress\n");
+        STACK_DUMP(stack);
+        return PTR_SMALLER_THAN_DATA;
+    }
 
-    DEBUG(
-        if (stack->ptr > stack->data + RESERVED / 2 + stack->capacity * stack->size_of_elem) {
-            printf_to_log_file("Stack pointer adress bigger than data adress\n");
-            STACK_DUMP(stack);
-            error = error | PTR_BIGGER_THAN_DATA;
-        }
-    )
 
-    DEBUG(
-        if (((size_t)stack->ptr - (size_t)(stack->data + sizeof(uintptr_t))) % stack->size_of_elem != 0) {
-            printf_to_log_file("Align not correct\n");
-            STACK_DUMP(stack);
-            error = error | ALIGN_NOT_CORRECT;
-        }
-    )
+    if (stack->top >= stack->capacity - 1 DEBUG( + CANARY_ELEMS)) {
+        printf_to_log_file("Stack pointer adress bigger than data adress\n");
+        STACK_DUMP(stack);
+        return PTR_BIGGER_THAN_DATA;
+    }
+
 
     DEBUG(
         size_t stack_old = stack->djb2_stack;
@@ -172,7 +169,7 @@ verify_errors stack_verify(stack_t_t *stack)
             error = error | STACK_HASH_NOT_CORRECT;
         }
 
-        stack->djb2_data = create_djb2_hash(stack->data, stack->capacity * stack->size_of_elem + RESERVED);
+        stack->djb2_data = create_djb2_hash((char*)stack->data, stack->capacity + CANARY_ELEMS);
         if (data_old != stack->djb2_data) {
             printf_to_log_file("Stack data hash is not correct\n");
             STACK_DUMP(stack);
@@ -181,8 +178,8 @@ verify_errors stack_verify(stack_t_t *stack)
     )
 
     DEBUG(
-        char *tail_canary_ptr = stack->data + RESERVED / 2 + stack->capacity * stack->size_of_elem;
-        if (memcmp(stack->data, &FRONTCANARY_DATA, RESERVED / 2) != 0 || memcmp(tail_canary_ptr, &TAILCANARY_DATA, RESERVED / 2) != 0) {
+        stack_elem_t tail_canary = (stack->data)[CANARY_ELEMS + stack->capacity - 1];
+        if (tail_canary != TAILCANARY_DATA || *(stack->data) != FRONTCANARY_DATA) {
             printf("DATA CANARIES DEAD\n");
             STACK_DUMP(stack);
             error = error | CANARY_DT_NOT_IN_PLACES;
@@ -205,9 +202,8 @@ void stack_dump(stack_t_t *stack)
     printf_to_log_file("Stack adress %p\n", stack);
     printf_to_log_file("Front stack canary: %X\n", stack->front_canary);
     printf_to_log_file("Data adress: %p\n", stack->data);
-    printf_to_log_file("Elem pointer adress: %p\n", stack->ptr);
+    printf_to_log_file("Pointer points at: %lu\n", stack->top);
     printf_to_log_file("Stack capacity: %lu\n", stack->capacity);
-    printf_to_log_file("Stack size of elem: %lu bytes\n", stack->size_of_elem);
 
     DEBUG(
     printf_to_log_file("DJB2 hash for data array: %lu\n", stack->djb2_data);
@@ -216,37 +212,36 @@ void stack_dump(stack_t_t *stack)
 
     printf_to_log_file("Tail stack canary: %X\n", stack->tail_canary);
 
-    if (stack->data && stack->ptr && stack->capacity != 0 && stack->size_of_elem != 0)
+    if (stack->data && stack->capacity != 0)
     {
-        DEBUG(
-        printf_to_log_file("Data front canary:\n");
-        bytes_dump(stack->data, RESERVED / 2);
-
-        printf_to_log_file("Data tail canary:\n");
-        char *tail_canary_ptr = stack->data + RESERVED / 2 + stack->capacity * stack->size_of_elem;
-        bytes_dump(tail_canary_ptr, RESERVED / 2);
-        )
-
-        char *data_start = stack->data + RESERVED / 2;
-        for (size_t idx = 0; idx < stack->capacity; idx++)
+        for (size_t idx = 0; idx <= stack->capacity + CANARY_ELEMS - 1; idx++)
         {
-            printf_to_log_file("Number of element in stack %zu\n", idx);
-            printf_to_log_file("Adress of elem [%p]\n", data_start + idx * stack->size_of_elem);
-
-            printf_to_log_file("Elem by bytes:\n");
-            bytes_dump(data_start + idx * stack->size_of_elem, stack->size_of_elem);
+            if (stack->data[idx] == POISON)
+            {
+                printf_to_log_file("[%lu] = ", idx);
+                printf_to_log_file(FORM_SPEC_STK_EL, stack->data[idx]);
+                printf_to_log_file( " (POISON)\n");
+            }
+            DEBUG(
+            else if (stack->data[idx] == TAILCANARY_DATA)
+            {
+                printf_to_log_file("[%lu] = ", idx);
+                printf_to_log_file( FORM_SPEC_STK_EL, stack->data[idx]);
+                printf_to_log_file(" (TAIL DATA CANARY)\n");
+            }
+            else if (stack->data[idx] == FRONTCANARY_DATA)
+            {
+                printf_to_log_file("[%lu] = ", idx);
+                printf_to_log_file(FORM_SPEC_STK_EL, stack->data[idx]);
+                printf_to_log_file(" (FRONT DATA CANARY)\n");
+            })
+            else
+            {
+                printf_to_log_file("^[%lu] = ", idx);
+                printf_to_log_file( FORM_SPEC_STK_EL, stack->data[idx]);
+                printf_to_log_file("\n", idx);
+            }
         }
-    }
-    printf_to_log_file("\n");
-}
-
-void bytes_dump(char *dump_data, size_t max_size_elem)
-{
-    if (MY_ASSERT(dump_data != NULL))
-        return;
-    for (size_t byte = 0; byte < max_size_elem; byte++)
-    {
-        printf_to_log_file("%02X ", (unsigned char)(dump_data)[byte]);
     }
     printf_to_log_file("\n");
 }
@@ -255,12 +250,12 @@ void update_stack_data_hash(stack_t_t *stack)
 {
     stack->djb2_stack = 0;
     stack->djb2_data = 0;
-    size_t size = (size_t)((char *)&stack->tail_canary - (char *)&stack->front_canary) + sizeof(stack->tail_canary);
+    size_t size = (size_t)(&stack->tail_canary - &stack->front_canary) + sizeof(stack->tail_canary);
     stack->djb2_stack = create_djb2_hash((char *)stack, size);
-    stack->djb2_data = create_djb2_hash(stack->data, stack->size_of_elem * stack->capacity + RESERVED);
+    stack->djb2_data = create_djb2_hash((char *)stack->data, stack->capacity + CANARY_ELEMS);
 }
 
-func_errors stack_push(stack_t_t *stack, const void *elem)
+func_errors stack_push(stack_t_t *stack, stack_elem_t *elem)
 {
     func_errors error = NO_MISTAKE_FUNC;
     if (MY_ASSERT(stack_verify(stack) == NO_MISTAKE))
@@ -270,13 +265,13 @@ func_errors stack_push(stack_t_t *stack, const void *elem)
     if (error)
         return error;
 
-    size_t current_size = ((size_t)stack->ptr - (size_t)(stack->data + RESERVED / 2)) / (size_t)stack->size_of_elem;
-    if (current_size >= stack->capacity)
-    {
+    stack->top += 1;
+    if (stack->top >= stack->capacity)
+    {  
+        DEBUG(update_stack_data_hash(stack);)
         stack_realloc(stack);
     }
-    memcpy(stack->ptr, elem, stack->size_of_elem);
-    stack->ptr += stack->size_of_elem;
+    stack->data[stack -> top] = *elem;
 
     DEBUG(update_stack_data_hash(stack);)
 
@@ -285,26 +280,26 @@ func_errors stack_push(stack_t_t *stack, const void *elem)
     return error;
 }
 
-func_errors stack_pop(stack_t_t *stack, void *elem)
+func_errors stack_pop(stack_t_t *stack, stack_elem_t *elem)
 {
     if (MY_ASSERT(stack_verify(stack) == NO_MISTAKE))
         return VERIFY_FAILED;
     if (!elem)
     {
-        if (stack->ptr >= stack->data + RESERVED / 2 + stack->size_of_elem)
+        if (stack->top >= 0 DEBUG(+ CANARY_ELEMS / 2))
         {
-            stack->ptr -= stack->size_of_elem;
-            memset(stack->ptr, 0, stack->size_of_elem);
+            stack->data[stack -> top] = POISON;
+            stack->top -= 1;
             DEBUG(update_stack_data_hash(stack);)
         }
         return NO_MISTAKE_FUNC;
     }
 
-    if (stack->ptr >= stack->data + RESERVED / 2 + stack->size_of_elem)
-    {
-        stack->ptr -= stack->size_of_elem;
-        memcpy(elem, stack->ptr, stack->size_of_elem);
-        memset(stack->ptr, 0, stack->size_of_elem);
+    if (stack->top >= 0 DEBUG(+ CANARY_ELEMS / 2))
+    {   
+        *elem = stack->data[stack -> top];
+        stack->data[stack -> top] = POISON;
+        stack->top -= 1;
     }
 
     DEBUG(update_stack_data_hash(stack);)
@@ -314,7 +309,7 @@ func_errors stack_pop(stack_t_t *stack, void *elem)
     return NO_MISTAKE_FUNC;
 }
 
-func_errors stack_top(stack_t_t *stack, void *elem)
+func_errors stack_top(stack_t_t *stack, stack_elem_t *elem)
 {
     func_errors error = NO_MISTAKE_FUNC;
     if (MY_ASSERT(stack_verify(stack) == NO_MISTAKE))
@@ -324,36 +319,32 @@ func_errors stack_top(stack_t_t *stack, void *elem)
     if (error)
         return error;
 
-    if (stack->ptr >= stack->data + RESERVED / 2 + stack->size_of_elem)
+    if (stack->top >=  0 DEBUG(+ CANARY_ELEMS / 2))
     {
-        stack->ptr -= stack->size_of_elem;
-        memcpy(elem, stack->ptr, stack->size_of_elem);
-        stack->ptr += stack->size_of_elem;
+        *elem = stack->data[stack -> top];
     }
 
     return NO_MISTAKE_FUNC;
 }
+
 
 func_errors stack_realloc(stack_t_t *stack)
 {
     if (MY_ASSERT(stack_verify(stack) == NO_MISTAKE))
         return VERIFY_FAILED;
 
-    size_t new_capacity = stack->capacity * 2;
-    size_t ptr_pos = (size_t)stack->ptr - (size_t)(stack->data + RESERVED / 2);
+    size_t old_capacity = stack->capacity;
+    stack->capacity = stack->capacity * 2;
 
-    char *new_data = (char *)realloc(stack->data, new_capacity * stack->size_of_elem + RESERVED);
+    stack_elem_t* new_data = (stack_elem_t*)realloc(stack->data, (stack->capacity DEBUG(+ CANARY_ELEMS))*sizeof(stack_elem_t));
     if (MY_ASSERT(new_data != NULL))
         return ALLOC_ERROR;
 
     stack->data = new_data;
-    memset(stack->data + RESERVED / 2 + stack->capacity * stack->size_of_elem, 0, (new_capacity - stack->capacity) * stack->size_of_elem + RESERVED / 2);
-
-    stack->capacity = new_capacity;
-    stack->ptr = stack->data + RESERVED / 2 + ptr_pos;
+    fill_poison(stack, old_capacity + CANARY_ELEMS - 1, stack->capacity - 1 + CANARY_ELEMS / 2);
 
     DEBUG(
-    memcpy(stack->data + RESERVED / 2 + stack->capacity * stack->size_of_elem, &TAILCANARY_DATA, sizeof(RESERVED / 2));
+    stack->data[CANARY_ELEMS + stack->capacity - 1] = TAILCANARY_DATA;
     )
 
     DEBUG(update_stack_data_hash(stack);)
@@ -363,15 +354,14 @@ func_errors stack_realloc(stack_t_t *stack)
     return NO_MISTAKE_FUNC;
 }
 
+
 func_errors stack_free(stack_t_t *stack)
 {
     if (MY_ASSERT(stack_verify(stack) == NO_MISTAKE))
         return VERIFY_FAILED;
 
-    memset(stack->data, 0, stack->capacity * stack->size_of_elem);
     free(stack->data);
-
-    memset(stack, 0, sizeof(stack_t_t));
     free(stack);
+
     return NO_MISTAKE_FUNC;
 }

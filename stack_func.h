@@ -9,6 +9,10 @@ typedef int64_t verify_errors;
 //! For errors in function's work
 typedef int64_t func_errors; 
 
+typedef int stack_elem_t; 
+
+struct stack_t_t;
+
 #ifdef _DEBUG
     #define STACK_DUMP(stack) stack_dump(stack);
 #else 
@@ -21,7 +25,6 @@ typedef int64_t func_errors;
     #define DEBUG(...)
 #endif //_DEBUG
 
-struct stack_t_t;
 
 //! Stack constructor
 //!
@@ -41,7 +44,7 @@ struct stack_t_t;
 //!
 //! @warning If parameter check or memory allocation fails,
 //!          returns NULL. All allocated resources are freed.
-stack_t_t* stack_ctor(long long int num_of_elem, long long int size_of_elem, const char* file, const char* func, int line);
+stack_t_t* stack_ctor(long long int num_of_elem, const char* file, const char* func, int line);
 
 //! Stack verification function
 //!
@@ -91,7 +94,7 @@ void stack_dump(stack_t_t* stack);
 //!       - Validates stack using stack_verify() after element addition
 //!
 //! @note Element is copied byte-by-byte using memcpy()
-func_errors stack_push(stack_t_t* stack, const void* elem);
+func_errors stack_push(stack_t_t* stack, stack_elem_t* elem);
 
 //! Stack pop function
 //!
@@ -109,7 +112,7 @@ func_errors stack_push(stack_t_t* stack, const void* elem);
 //!       - Validates stack after operation using stack_verify()
 //!
 //! @note Element is copied byte-by-byte using memcpy(), and removed via memset()
-func_errors stack_pop(stack_t_t* stack, void* elem);
+func_errors stack_pop(stack_t_t* stack, stack_elem_t* elem);
 
 //! Function to read the top element of the stack without removing it
 //!
@@ -125,7 +128,7 @@ func_errors stack_pop(stack_t_t* stack, void* elem);
 //!
 //! @note Element is copied byte-by-byte using memcpy()
 //! @note Does not remove element from stack - only reads it
-func_errors stack_top(stack_t_t* stack, void* elem);
+func_errors stack_top(stack_t_t* stack, stack_elem_t* elem);
 
 //! Stack memory deallocation function
 //!

@@ -4,27 +4,33 @@
 
 void stack_work()
 {
-    stack_t_t *stack = stack_ctor(3, sizeof(int), __FILE__, __PRETTY_FUNCTION__, __LINE__);
+    stack_t_t *stack = stack_ctor(3, __FILE__, __PRETTY_FUNCTION__, __LINE__);
 
     int value = 1;
     stack_push(stack, &value);
+    // stack_dump(stack);
 
     value = 2;
     stack_push(stack, &value);
+    // stack_dump(stack);
 
     value = 3;
     stack_push(stack, &value);
+    // stack_dump(stack);
 
     value = 4;
     stack_push(stack, &value);
+    // stack_dump(stack);
 
     int pop_value = 0;
     stack_pop(stack, &pop_value);
-    printf("pop_value = %d", pop_value);
+    printf("pop_value = %d\n", pop_value);
+    // stack_dump(stack);
 
     pop_value = 0;
     stack_top(stack, &pop_value);
-    printf("pop_value = %d", pop_value);
+    printf("top_value = %d\n", pop_value);
+    // stack_dump(stack);
 
     stack_dump(stack);
 
@@ -33,10 +39,9 @@ void stack_work()
 
 void mistakes_at_stack()
 {
-    stack_t_t *stack1 = stack_ctor(3, NULL, __FILE__, __PRETTY_FUNCTION__, __LINE__);
-    stack_t_t *stack11 = stack_ctor(-6, sizeof(int), __FILE__, __PRETTY_FUNCTION__, __LINE__);
+    stack_t_t *stack11 = stack_ctor(-6, __FILE__, __PRETTY_FUNCTION__, __LINE__);
 
-    stack_t_t *stack2 = stack_ctor(3, sizeof(int), __FILE__, __PRETTY_FUNCTION__, __LINE__);
+    stack_t_t *stack2 = stack_ctor(3, __FILE__, __PRETTY_FUNCTION__, __LINE__);
     stack_push(stack2, NULL);
 
     int s = 1;
@@ -50,7 +55,6 @@ void mistakes_at_stack()
 
     stack_pop(NULL, NULL);
 
-    stack_free(stack1);
     stack_free(stack11);
     stack_free(stack2);
 }
