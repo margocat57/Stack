@@ -2,7 +2,7 @@
 #ifndef MISTAKES_CODE_H
 #define MISTAKES_CODE_H
 
-//! Mistakes at verification
+//! Mistakes at verification and function's work
 enum stack_err_t {
     NO_MISTAKE              = 0,
     NULL_STACK_PTR          = 1 << 0,
@@ -13,17 +13,14 @@ enum stack_err_t {
     ALIGN_NOT_CORRECT       = 1 << 5,
     STACK_HASH_NOT_CORRECT  = 1 << 6,
     DATA_HASH_NOT_CORRECT   = 1 << 7,
-    CANARY_DT_NOT_IN_PLACES = 1 << 8
+    CANARY_DT_NOT_IN_PLACES = 1 << 8,
+    //! Mistakes at function's work
+    FUNC_PARAM_IS_NULL      = 1 << 9,  //!< Parametr given to function is NULL
+    ALLOC_ERROR             = 1 << 10, //!< Stack verification failed
+    INCORR_DIGIT_PARAMS     = 1 << 11,  //!< Allocation error
+    INCORR_POP_IDX          = 1 << 12
 };
 
-//! Mistakes at function's work
-enum func_param_err_t{
-    NO_MISTAKE_FUNC         = 0,
-    FUNC_PARAM_IS_NULL      = 1 << 0, //!< Parametr given to function is NULL
-    VERIFY_FAILED           = 1 << 1, //!< Stack verification failed
-    ALLOC_ERROR             = 1 << 2, //!< Allocation error
-    INCORR_DIGIT_PARAMS     = 1 << 3
-};
 
 
 #endif //MISTAKES_CODE_H

@@ -2,12 +2,10 @@
 #ifndef STACK_FUNC_H
 #define STACK_FUNC_H
 #include <stdint.h>
+#include <stdlib.h>
 #include "mistakes_code.h"
 
-//! For verification errors
-typedef int64_t verify_errors; 
-//! For errors in function's work
-typedef int64_t func_errors; 
+typedef int64_t stack_err_bytes; 
 
 typedef int stack_elem_t; 
 
@@ -44,7 +42,7 @@ struct stack_t_t;
 //!
 //! @warning If parameter check or memory allocation fails,
 //!          returns NULL. All allocated resources are freed.
-stack_t_t* stack_ctor(long long int num_of_elem, const char* file, const char* func, int line);
+stack_t_t* stack_ctor(size_t num_of_elem, const char* file, const char* func, int line);
 
 //! Stack verification function
 //!
@@ -64,7 +62,7 @@ stack_t_t* stack_ctor(long long int num_of_elem, const char* file, const char* f
 //!          - Stack structure hash consistency
 //!          - Data hash consistency
 //!          - Data canaries integrity
-verify_errors stack_verify(stack_t_t* stack);
+stack_err_bytes stack_verify(stack_t_t* stack);
 
 //! Stack dump function for debugging
 //!
@@ -79,7 +77,7 @@ verify_errors stack_verify(stack_t_t* stack);
 //! @note For stacks without null pointers or zero important information, additionally outputs:
 //!       - Data canaries dump
 //!       - Element-by-element dump of all stack data with addresses using byte representation of each element
-void stack_dump(stack_t_t* stack);
+void stack_dump(const stack_t_t *stack);
 
 //! Stack push function
 //!
@@ -94,7 +92,7 @@ void stack_dump(stack_t_t* stack);
 //!       - Validates stack using stack_verify() after element addition
 //!
 //! @note Element is copied byte-by-byte using memcpy()
-func_errors stack_push(stack_t_t* stack, stack_elem_t* elem);
+stack_err_bytes stack_push(stack_t_t* stack, stack_elem_t* elem);
 
 //! Stack pop function
 //!
@@ -112,7 +110,7 @@ func_errors stack_push(stack_t_t* stack, stack_elem_t* elem);
 //!       - Validates stack after operation using stack_verify()
 //!
 //! @note Element is copied byte-by-byte using memcpy(), and removed via memset()
-func_errors stack_pop(stack_t_t* stack, stack_elem_t* elem);
+stack_err_bytes stack_pop(stack_t_t* stack, stack_elem_t* elem);
 
 //! Function to read the top element of the stack without removing it
 //!
@@ -128,7 +126,7 @@ func_errors stack_pop(stack_t_t* stack, stack_elem_t* elem);
 //!
 //! @note Element is copied byte-by-byte using memcpy()
 //! @note Does not remove element from stack - only reads it
-func_errors stack_top(stack_t_t* stack, stack_elem_t* elem);
+stack_err_bytes stack_top(stack_t_t *stack, stack_elem_t *elem);
 
 //! Stack memory deallocation function
 //!
@@ -140,6 +138,6 @@ func_errors stack_top(stack_t_t* stack, stack_elem_t* elem);
 //!       - Frees memory allocated for data array
 //!       - Fills stack structure memory with zeros using memset()
 //!       - Frees memory allocated for stack structure
-func_errors stack_free(stack_t_t* stack);
+stack_err_bytes stack_free(stack_t_t* stack);
 
 #endif //STACK_FUNC_H

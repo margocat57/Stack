@@ -2,7 +2,7 @@
 #include "mistakes_code.h"
 #include "log.h"
 
-bool my_assert_func(bool condition, const char *str_condition, const char *file, const char *func, int line)
+bool my_save_assert_func(bool condition, const char *str_condition, const char *file, const char *func, int line)
 {
     if (!condition)
     {
